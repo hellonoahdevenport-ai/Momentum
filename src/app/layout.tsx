@@ -1,18 +1,11 @@
 import type { Metadata } from "next";
-import { Baloo_2, Inter, IBM_Plex_Mono } from "next/font/google";
+import { Manrope, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
-import { BuilderModeProvider } from "@/context/BuilderModeContext";
 
-const baloo = Baloo_2({
-  variable: "--font-baloo",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
-});
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 const plexMono = IBM_Plex_Mono({
@@ -22,19 +15,22 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Casebook",
+  title: {
+    default: "Casebook",
+    template: "%s · Casebook",
+  },
   description:
-    "A skill path for medicine and nursing students: interview, gather evidence, commit to a call, get graded.",
+    "Casebook is a working title for a medical and nursing education product: practice clinical reasoning in fictional, interactive cases. For education and simulation only.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${baloo.variable} ${inter.variable} ${plexMono.variable} h-full antialiased`}
+      className={`${manrope.variable} ${plexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        <BuilderModeProvider>{children}</BuilderModeProvider>
+      <body className="min-h-full flex flex-col bg-background text-foreground">
+        {children}
       </body>
     </html>
   );

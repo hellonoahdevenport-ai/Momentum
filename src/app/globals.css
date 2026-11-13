@@ -1,51 +1,73 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --surface-2: #f1f5f9;
-  --border: #e2e8f0;
-  --foreground: #1e293b;
-  --foreground-dim: #64748b;
-  --accent: #2563eb;
-  --accent-dark: #1e40af;
-  --accent-soft: #eaf0fe;
-  --good: #16a34a;
-  --good-soft: #dcfce7;
-  --warn: #d97706;
-  --warn-soft: #fef3c7;
-  --bad: #dc2626;
-  --bad-soft: #fee2e2;
+  --background: #fcfcf8;
+  --surface: #ffffff;
+  --surface-2: #eef3ff;
+  --surface-mint: #e6f7f1;
+  --surface-violet: #f1ecfe;
+  --border: #e4e3da;
+  --border-strong: #d7d9e4;
+  --foreground: #172237;
+  --foreground-dim: #4d5771;
+  --accent: #355cff;
+  --accent-dark: #1e3fd1;
+  --accent-soft: #e8edff;
+  --coral: #ff6b4a;
+  --coral-soft: #ffe9e2;
+  --teal: #17b890;
+  --teal-soft: #e1f7ef;
+  --violet: #a78bfa;
+  --violet-soft: #f1ecfe;
+  --good: #1a9a6e;
+  --good-soft: #e1f5ec;
+  --warn: #c2660a;
+  --warn-soft: #fdecd4;
+  --bad: #d23c2e;
+  --bad-soft: #fde6e2;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-mint: var(--surface-mint);
+  --color-surface-violet: var(--surface-violet);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-foreground: var(--foreground);
   --color-foreground-dim: var(--foreground-dim);
   --color-accent: var(--accent);
   --color-accent-dark: var(--accent-dark);
   --color-accent-soft: var(--accent-soft);
+  --color-coral: var(--coral);
+  --color-coral-soft: var(--coral-soft);
+  --color-teal: var(--teal);
+  --color-teal-soft: var(--teal-soft);
+  --color-violet: var(--violet);
+  --color-violet-soft: var(--violet-soft);
   --color-good: var(--good);
   --color-good-soft: var(--good-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
   --color-bad: var(--bad);
   --color-bad-soft: var(--bad-soft);
-  --font-display: var(--font-baloo);
-  --font-body: var(--font-inter);
+  --font-display: var(--font-manrope);
+  --font-body: var(--font-manrope);
   --font-data: var(--font-plex-mono);
 }
 
+/* Track identity accents: cobalt for Medicine, teal for Nursing. Purposeful
+   secondary accents per track, not arbitrary decoration. */
 .track-medicine {
-  --accent: #2563eb;
-  --accent-dark: #1e40af;
-  --accent-soft: #eaf0fe;
+  --accent: #355cff;
+  --accent-dark: #1e3fd1;
+  --accent-soft: #e8edff;
 }
 .track-nursing {
-  --accent: #7c3aed;
-  --accent-dark: #5b21b6;
-  --accent-soft: #f1eafe;
+  --accent: #17b890;
+  --accent-dark: #0e8e6d;
+  --accent-soft: #e1f7ef;
 }
 
 /* Casebook is a fixed light, bright product identity by design, not a
@@ -68,15 +90,48 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.btn-chunky {
-  border-bottom-width: 4px;
-  transition: transform 0.05s, border-bottom-width 0.05s;
+.btn-press {
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.15s ease;
 }
-.btn-chunky:active:not(:disabled) {
-  transform: translateY(3px);
-  border-bottom-width: 1px;
+.btn-press:active:not(:disabled) {
+  transform: translateY(1px);
 }
-.btn-chunky:disabled {
-  opacity: 0.4;
+.btn-press:disabled {
+  opacity: 0.45;
   cursor: default;
+}
+
+.card-lift {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.card-lift:hover {
+  transform: translateY(-2px);
+}
+
+.focus-ring {
+  outline: none;
+}
+.focus-ring:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

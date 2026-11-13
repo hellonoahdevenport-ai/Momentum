@@ -3,112 +3,116 @@ export interface Unit {
   mono: string;
   label: string;
   color: string;
-  colorDark: string;
   hint: string;
+  /** Reference mapping for content maintainers. Casebook's own taxonomy;
+   * mapped to official outlines where a case has actually been authored
+   * and reviewed. Update when source documents change. */
+  mapping: string;
 }
 
-// Shared organ-system curriculum spine. Tier 1 for both tracks: Step 1 / Year 1.
+// Shared organ-system / competency spine, used as Casebook's own learning
+// taxonomy for both tracks. Only units with an authored, reviewed case are
+// "available" in the registry — the rest are "planned" until built.
 export const UNITS: Unit[] = [
   {
     key: "foundations",
     mono: "FN",
     label: "Foundations",
-    color: "#475569",
-    colorDark: "#1f2937",
-    hint: "a general-principles presentation spanning basic cell biology, genetics, pharmacology, or microbiology rather than one organ system",
+    color: "#4d5771",
+    hint: "general principles: cell biology, genetics, pharmacology, microbiology",
+    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "blood-immune",
     mono: "BI",
     label: "Blood & Immune",
-    color: "#e11d48",
-    colorDark: "#881337",
-    hint: "a hematologic or immune system presentation (anemia, a bleeding or clotting disorder, immunodeficiency, or an autoimmune/hypersensitivity condition)",
+    color: "#355cff",
+    hint: "hematologic and immune system presentations",
+    mapping:
+      "Medicine: USMLE Step 1 outline — Hematopoietic & Lymphoreticular System (reference only). Nursing: NCSBN Physiological Adaptation (reference only).",
   },
   {
     key: "cardiovascular",
     mono: "CV",
     label: "Cardiovascular",
-    color: "#ea580c",
-    colorDark: "#9a3412",
-    hint: "a cardiovascular presentation",
+    color: "#ff6b4a",
+    hint: "cardiovascular presentations",
+    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "respiratory",
     mono: "RS",
     label: "Respiratory",
-    color: "#0284c7",
-    colorDark: "#075985",
-    hint: "a respiratory presentation",
+    color: "#17b890",
+    hint: "respiratory presentations",
+    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "renal",
     mono: "RU",
     label: "Renal & Urinary",
-    color: "#059669",
-    colorDark: "#065f46",
-    hint: "a renal or urinary presentation",
+    color: "#0e8e6d",
+    hint: "renal and urinary presentations",
+    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "gi",
     mono: "GI",
     label: "Gastrointestinal",
-    color: "#ca8a04",
-    colorDark: "#854d0e",
-    hint: "a gastrointestinal presentation",
+    color: "#c2660a",
+    hint: "gastrointestinal presentations",
+    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "msk",
     mono: "MS",
     label: "Musculoskeletal & Skin",
-    color: "#7c3aed",
-    colorDark: "#4c1d95",
-    hint: "a musculoskeletal, skin, or soft-tissue presentation",
+    color: "#a78bfa",
+    hint: "musculoskeletal, skin, and soft-tissue presentations",
+    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "nervous",
     mono: "NS",
     label: "Nervous System",
-    color: "#4f46e5",
-    colorDark: "#312e81",
-    hint: "a neurological presentation, including the special senses",
+    color: "#1e3fd1",
+    hint: "neurological presentations, including special senses",
+    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "endocrine",
     mono: "EN",
     label: "Endocrine",
-    color: "#c026d3",
-    colorDark: "#701a75",
-    hint: "an endocrine or metabolic presentation",
+    color: "#d23c2e",
+    hint: "endocrine and metabolic presentations",
+    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "reproductive",
     mono: "RP",
     label: "Reproductive",
-    color: "#db2777",
-    colorDark: "#831843",
-    hint: "a reproductive, obstetric, or breast presentation",
+    color: "#ff6b4a",
+    hint: "reproductive, obstetric, and breast presentations",
+    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "behavioral",
     mono: "BH",
     label: "Behavioral Health",
-    color: "#0d9488",
-    colorDark: "#115e59",
-    hint: "a behavioral health, psychiatric, or psychosocial presentation",
+    color: "#17b890",
+    hint: "behavioral health and psychosocial presentations",
+    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "multisystem",
     mono: "MX",
     label: "Multisystem",
-    color: "#1e293b",
-    colorDark: "#020617",
-    hint: "a multisystem presentation that draws on more than one organ system at once (a capstone case)",
+    color: "#172237",
+    hint: "capstone presentations spanning more than one system",
+    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
   },
 ];
 
 export function unitByKey(key: string): Unit | undefined {
   return UNITS.find((u) => u.key === key);
 }
-
-export const PASS_THRESHOLD = 3;

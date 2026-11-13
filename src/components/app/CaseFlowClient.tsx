@@ -1,0 +1,783 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  startInterview,
+  askPatient,
+  orderEvidence,
+  gradeInterpretationAction,
+  gradeReasoningAndPlanAction,
+} from "@/lib/cases/actions";
+import type { CasePublicView, EvidenceResult, InterpretationGradeResult, DebriefResult } from "@/lib/cases/types";
+import { recordCaseAttempt, loadProgress } from "@/lib/progress";
+import Badge from "@/components/ui/Badge";
+import ReviewStatusBadge from "@/components/ReviewStatusBadge";
+
+interface ChatTurn {
+  role: "patient" | "you";
+  text: string;
+}
+
+export default function CaseFlowClient({ caseId, initial }: { caseId: string; initial: CasePublicView }) {
+  const router = useRouter();
+  const stages = initial.stages;
+  const [stageIndex, setStageIndex] = useState(0);
+  const [furthest, setFurthest] = useState(0);
+  const stage = stages[stageIndex].key;
+
+  // --- interview ---
+  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const [chatBusy, setChatBusy] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [askedTopicIds, setAskedTopicIds] = useState<string[]>([]);
+  const transcriptRef = useRef<HTMLDivElement>(null);
+
+  // --- evidence ---
+  const [selected, setSelected] = useState<string[]>([]);
+  const [results, setResults] = useState<Record<string, EvidenceResult | "pending" | undefined>>({});
+
+  // --- interpretation ---
+  const [answers, setAnswers] = useState<Record<string, number | number[] | string[]>>({});
+  const [rankOrder, setRankOrder] = useState<Record<string, string[]>>({});
+  const [interpGrade, setInterpGrade] = useState<InterpretationGradeResult | null>(null);
+  const [interpSubmitting, setInterpSubmitting] = useState(false);
+
+  // --- reasoning ---
+  const [conclusionIndex, setConclusionIndex] = useState<number | null>(null);
+  const [differential, setDifferential] = useState<number[]>([]);
+  const [confidence, setConfidence] = useState<number>(3);
+  const [changeMindText, setChangeMindText] = useState("");
+
+  // --- plan ---
+  const [planText, setPlanText] = useState("");
+
+  // --- event / debrief ---
+  const [eventChoiceId, setEventChoiceId] = useState<string | null>(null);
+  const [debrief, setDebrief] = useState<DebriefResult | null>(null);
+  const [grading, setGrading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [finished, setFinished] = useState(false);
+
+  const startedAt = useRef<number | null>(null);
+  const [elapsed, setElapsed] = useState("0:00");
+
+  useEffect(() => {
+    startedAt.current = Date.now();
+    const t = setInterval(() => {
+      const s = Math.floor((Date.now() - (startedAt.current ?? Date.now())) / 1000);
+      setElapsed(`${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`);
+    }, 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  function goTo(i: number) {
+    if (i <= furthest) setStageIndex(i);
+  }
+
+  function advance() {
+    const next = stageIndex + 1;
+    setStageIndex(next);
+    setFurthest((f) => Math.max(f, next));
+  }
+
+  async function beginInterview() {
+    setChatBusy(true);
+    try {
+      const { text } = await startInterview(caseId);
+      setTurns([{ role: "patient", text }]);
+    } catch {
+      setErrorMsg("Couldn’t start the interview. Try again.");
+    } finally {
+      setChatBusy(false);
+    }
+    advance();
+  }
+
+  async function sendQuestion() {
+    const q = chatInput.trim();
+    if (!q || chatBusy) return;
+    setChatInput("");
+    setTurns((t) => [...t, { role: "you", text: q }]);
+    setChatBusy(true);
+    try {
+      const { text, topicId } = await askPatient(caseId, q, askedTopicIds);
+      if (topicId) setAskedTopicIds((ids) => (ids.includes(topicId) ? ids : [...ids, topicId]));
+      setTurns((t) => [...t, { role: "patient", text }]);
+    } catch {
+      setErrorMsg("Couldn’t reach the patient. Try again.");
+    } finally {
+      setChatBusy(false);
+      requestAnimationFrame(() => transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight }));
+    }
+  }
+
+  function toggleEvidence(id: string) {
+    if (results[id]) return;
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  }
+
+  async function pullEvidence() {
+    const ids = selected.filter((id) => !results[id]);
+    if (!ids.length) return;
+    setResults((r) => {
+      const next = { ...r };
+      ids.forEach((id) => (next[id] = "pending"));
+      return next;
+    });
+    try {
+      const fetched = await orderEvidence(caseId, ids);
+      fetched.forEach((item, i) => {
+        setTimeout(() => setResults((r) => ({ ...r, [item.id]: item })), 400 + i * 220);
+      });
+    } catch {
+      setErrorMsg("Couldn’t pull results. Try again.");
+    }
+  }
+
+  function setRanking(qid: string, items: string[]) {
+    setRankOrder((r) => ({ ...r, [qid]: items }));
+    setAnswers((a) => ({ ...a, [qid]: items }));
+  }
+
+  function moveRankItem(qid: string, items: string[], index: number, dir: -1 | 1) {
+    const next = [...items];
+    const target = index + dir;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target], next[index]];
+    setRanking(qid, next);
+  }
+
+  async function submitInterpretation() {
+    setInterpSubmitting(true);
+    setErrorMsg(null);
+    try {
+      // A ranking question's displayed order is an implicit answer even if
+      // the learner never touches the reorder buttons, so fill in the
+      // untouched default order before grading rather than submitting
+      // nothing for it.
+      const finalAnswers = { ...answers };
+      initial.interpretationQuestions.forEach((q) => {
+        if (q.type === "ranking" && finalAnswers[q.id] === undefined) {
+          finalAnswers[q.id] = rankOrder[q.id] ?? q.items;
+        }
+      });
+      const grade = await gradeInterpretationAction(caseId, finalAnswers);
+      setInterpGrade(grade);
+    } catch {
+      setErrorMsg("Couldn’t grade those answers. Try again.");
+    } finally {
+      setInterpSubmitting(false);
+    }
+  }
+
+  async function finishCase(finalEventChoiceId: string | null) {
+    setGrading(true);
+    setErrorMsg(null);
+    try {
+      const result = await gradeReasoningAndPlanAction(caseId, {
+        conclusionChoiceIndex: conclusionIndex ?? -1,
+        differentialChoiceIndices: differential,
+        confidence,
+        changeMyMindText: changeMindText,
+        planText,
+        eventChoiceId: finalEventChoiceId,
+      });
+      setDebrief(result);
+      setStageIndex(stages.length - 1);
+      setFurthest(stages.length - 1);
+    } catch {
+      setErrorMsg("Grading failed. Try again.");
+    } finally {
+      setGrading(false);
+    }
+  }
+
+  function submitPlan() {
+    if (initial.unfoldingEvent) {
+      advance();
+    } else {
+      finishCase(null);
+    }
+  }
+
+  function finishAndSave() {
+    if (!debrief || finished) return;
+    setFinished(true);
+    const progress = loadProgress();
+    const missed = interpGrade
+      ? interpGrade.perQuestion
+          .filter((p) => !p.correct)
+          .map((p) => ({
+            id: `${caseId}:${p.id}`,
+            caseId,
+            prompt: initial.interpretationQuestions.find((q) => q.id === p.id)?.prompt ?? "Review this finding.",
+            answer: p.rationale,
+          }))
+      : [];
+    recordCaseAttempt(
+      progress,
+      {
+        caseId,
+        trackKey: initial.meta.trackKey,
+        unitKey: initial.meta.unitKey,
+        completedAt: Date.now(),
+        overallScore: debrief.overallScore,
+        verdict: debrief.verdict,
+        conclusionCorrect: debrief.conclusionCorrect,
+        confidence,
+        calibration: debrief.calibration,
+      },
+      missed,
+    );
+    router.push(`/app/learn/${initial.meta.trackKey}/${initial.meta.unitKey}`);
+  }
+
+  const canProceedReasoning = conclusionIndex !== null && differential.length > 0 && changeMindText.trim().length > 0;
+
+  return (
+    <div className={`track-${initial.meta.trackKey} mx-auto max-w-2xl px-5 pb-28 sm:px-8`}>
+      <div className="sticky top-16 z-10 -mx-5 border-b border-border bg-background px-5 pb-3 pt-4 sm:-mx-8 sm:px-8 lg:top-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Badge tone="accent">{initial.meta.estimatedMinutes} min</Badge>
+            <ReviewStatusBadge status={initial.meta.reviewStatus} />
+          </div>
+          <div className="flex items-center gap-3.5">
+            <Link href={`/app/learn/${initial.meta.trackKey}/${initial.meta.unitKey}`} className="focus-ring font-display text-sm font-bold text-accent">
+              Exit
+            </Link>
+            <span className="font-data text-xs text-foreground-dim">{elapsed}</span>
+          </div>
+        </div>
+        <h1 className="mt-2.5 text-[21px] font-bold text-foreground">{initial.patient.name}</h1>
+        <p className="text-sm text-foreground-dim">{initial.patient.summary}</p>
+        <div className="font-data mt-2 flex flex-wrap gap-x-3.5 gap-y-1 text-xs">
+          {initial.snapshotFacts.map((f) => (
+            <span key={f.label}>
+              <span className="text-foreground-dim">{f.label} </span>
+              {f.value}
+            </span>
+          ))}
+        </div>
+        <div className="scrollbar-thin mt-3 flex gap-1.5 overflow-x-auto">
+          {stages.map((s, i) => (
+            <button
+              key={s.key}
+              disabled={i > furthest}
+              onClick={() => goTo(i)}
+              className={`focus-ring whitespace-nowrap rounded-full px-3 py-1.5 font-display text-[12.5px] font-bold ${
+                i === stageIndex ? "bg-accent text-white" : i < stageIndex ? "text-accent" : "text-foreground-dim"
+              } ${i > furthest ? "cursor-not-allowed opacity-40" : ""}`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {errorMsg && <div className="mt-4 rounded-xl bg-warn-soft px-3.5 py-2.5 text-sm text-warn">{errorMsg}</div>}
+
+      {stage === "brief" && (
+        <div className="mt-6">
+          <h2 className="font-display text-lg font-bold text-foreground">{initial.meta.title}</h2>
+          <p className="mt-2 text-sm leading-relaxed text-foreground-dim">{initial.presentingIssue}</p>
+          {initial.meta.contentWarning && (
+            <div className="mt-3 rounded-xl bg-warn-soft px-3.5 py-2.5 text-sm text-warn">{initial.meta.contentWarning}</div>
+          )}
+          <div className="mt-5 rounded-2xl bg-surface-2 p-4 text-sm leading-relaxed text-foreground-dim">
+            This is a fictional case for education and simulation only — not a substitute for supervision, local
+            policy, or professional judgment.
+          </div>
+          <div className="mt-6 flex justify-end">
+            <button
+              onClick={beginInterview}
+              disabled={chatBusy}
+              className="btn-press focus-ring rounded-xl bg-accent px-6 py-3 font-display font-bold text-white disabled:opacity-40"
+            >
+              Begin the {initial.meta.trackKey === "nursing" ? "assessment" : "interview"} &rarr;
+            </button>
+          </div>
+        </div>
+      )}
+
+      {stage === "interview" && (
+        <div className="mt-5">
+          <div ref={transcriptRef} className="flex max-h-[420px] flex-col overflow-y-auto pr-0.5">
+            {turns.map((t, i) => (
+              <div key={i} className="border-b border-border py-3">
+                <div className={`mb-1 text-[11px] font-bold uppercase tracking-wide ${t.role === "you" ? "text-accent" : "text-foreground-dim"}`}>
+                  {t.role === "you" ? "You" : initial.patient.name}
+                </div>
+                <p className="text-[15px] leading-relaxed text-foreground">{t.text}</p>
+              </div>
+            ))}
+            {chatBusy && <p className="py-3 text-sm italic text-foreground-dim">&hellip;</p>}
+          </div>
+          <div className="mt-3.5 flex items-center gap-2 rounded-2xl bg-surface-2 py-1.5 pl-4 pr-1.5">
+            <label htmlFor="chat-input" className="sr-only">
+              Ask {initial.patient.name} a question
+            </label>
+            <input
+              id="chat-input"
+              value={chatInput}
+              disabled={chatBusy}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  sendQuestion();
+                }
+              }}
+              placeholder={`Ask ${initial.patient.name.split(" ")[0]} something...`}
+              className="flex-1 bg-transparent py-2 text-[15px] text-foreground outline-none placeholder:text-foreground-dim"
+            />
+            <button
+              disabled={chatBusy || !chatInput.trim()}
+              onClick={sendQuestion}
+              className="focus-ring rounded-xl bg-accent px-4 py-2 font-display text-sm font-bold text-white disabled:opacity-40"
+            >
+              Ask
+            </button>
+          </div>
+          <div className="mt-5 flex justify-end">
+            <button onClick={advance} className="btn-press focus-ring rounded-xl bg-accent px-6 py-3 font-display font-bold text-white">
+              Proceed to {stages[stageIndex + 1]?.label.toLowerCase()} &rarr;
+            </button>
+          </div>
+        </div>
+      )}
+
+      {stage === "evidence" && (
+        <div className="mt-5">
+          <div className="rounded-2xl bg-surface-2 p-4 text-sm leading-relaxed text-foreground-dim">
+            <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-foreground-dim">Initial assessment</span>
+            {initial.initialAssessment}
+          </div>
+
+          {initial.evidenceCategories.map((cat) => {
+            const items = initial.evidenceCatalog.filter((e) => e.category === cat);
+            if (!items.length) return null;
+            return (
+              <div key={cat} className="mt-5">
+                <h4 className="font-display mb-1.5 text-[15px] font-bold text-foreground">{cat}</h4>
+                {items.map((item) => {
+                  const result = results[item.id];
+                  const isSelected = selected.includes(item.id);
+                  return (
+                    <div key={item.id} className="flex items-start gap-3 rounded-xl px-2.5 py-2.5">
+                      {!result ? (
+                        <input
+                          type="checkbox"
+                          id={`ev-${item.id}`}
+                          checked={isSelected}
+                          onChange={() => toggleEvidence(item.id)}
+                          className="mt-0.5 h-4 w-4 accent-accent"
+                        />
+                      ) : (
+                        <span className="mt-0.5 w-4" />
+                      )}
+                      <label htmlFor={`ev-${item.id}`} className="flex-1">
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-foreground">
+                          {item.name}
+                          {item.invasive && <Badge tone="warn">Invasive</Badge>}
+                          {item.costNote === "higher cost" && <Badge tone="coral">Higher cost</Badge>}
+                        </div>
+                        {result === "pending" && <div className="font-data text-xs text-foreground-dim">pending&hellip;</div>}
+                        {result && result !== "pending" && (
+                          <div className="mt-1 text-xs leading-relaxed">
+                            <span
+                              className={
+                                result.resultFlag === "critical"
+                                  ? "font-bold text-bad"
+                                  : result.resultFlag === "abnormal"
+                                    ? "font-semibold text-warn"
+                                    : "text-foreground-dim"
+                              }
+                            >
+                              {result.resultText}
+                            </span>
+                            {result.referenceRange && <span className="text-foreground-dim"> (ref: {result.referenceRange})</span>}
+                            <div className="mt-0.5 text-foreground-dim">{result.teachingNote}</div>
+                          </div>
+                        )}
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-2.5">
+            <div className="text-sm text-foreground-dim">{selected.filter((id) => !results[id]).length} selected</div>
+            <button
+              disabled={selected.filter((id) => !results[id]).length === 0}
+              onClick={pullEvidence}
+              className="btn-press focus-ring rounded-xl bg-accent px-5 py-2.5 font-display font-bold text-white disabled:opacity-40"
+            >
+              Pull selected evidence
+            </button>
+          </div>
+
+          <div className="mt-5 flex justify-end">
+            <button onClick={advance} className="btn-press focus-ring rounded-xl bg-accent px-6 py-3 font-display font-bold text-white">
+              Proceed to {stages[stageIndex + 1]?.label.toLowerCase()} &rarr;
+            </button>
+          </div>
+        </div>
+      )}
+
+      {stage === "interpretation" && (
+        <div className="mt-5 flex flex-col gap-7">
+          {initial.interpretationQuestions.map((q) => {
+            const graded = interpGrade?.perQuestion.find((p) => p.id === q.id);
+            return (
+              <div key={q.id} className="rounded-2xl border border-border bg-surface p-5">
+                <p className="font-display text-[15px] font-bold text-foreground">{q.prompt}</p>
+
+                {q.type === "mcq" && q.display === "dropdown" && (
+                  <select
+                    disabled={!!interpGrade}
+                    value={typeof answers[q.id] === "number" ? (answers[q.id] as number) : ""}
+                    onChange={(e) => setAnswers((a) => ({ ...a, [q.id]: Number(e.target.value) }))}
+                    className="focus-ring mt-3 w-full rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-sm text-foreground"
+                  >
+                    <option value="" disabled>
+                      &mdash; choose one &mdash;
+                    </option>
+                    {q.options.map((opt, i) => (
+                      <option key={opt} value={i}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {q.type === "mcq" && q.display === "radio" && (
+                  <div className="mt-3 flex flex-col gap-2">
+                    {q.options.map((opt, i) => (
+                      <label key={opt} className="flex items-center gap-2.5 text-sm text-foreground">
+                        <input
+                          type="radio"
+                          name={q.id}
+                          disabled={!!interpGrade}
+                          checked={answers[q.id] === i}
+                          onChange={() => setAnswers((a) => ({ ...a, [q.id]: i }))}
+                          className="h-4 w-4 accent-accent"
+                        />
+                        {opt}
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {q.type === "multi-select" && (
+                  <div className="mt-3 flex flex-col gap-2">
+                    {q.options.map((opt, i) => {
+                      const picked = Array.isArray(answers[q.id]) ? (answers[q.id] as number[]) : [];
+                      return (
+                        <label key={opt} className="flex items-center gap-2.5 text-sm text-foreground">
+                          <input
+                            type="checkbox"
+                            disabled={!!interpGrade}
+                            checked={picked.includes(i)}
+                            onChange={() =>
+                              setAnswers((a) => {
+                                const cur = Array.isArray(a[q.id]) ? (a[q.id] as number[]) : [];
+                                const next = cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i];
+                                return { ...a, [q.id]: next };
+                              })
+                            }
+                            className="h-4 w-4 accent-accent"
+                          />
+                          {opt}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {q.type === "ranking" && (
+                  <ol className="mt-3 flex flex-col gap-2">
+                    {(rankOrder[q.id] ?? q.items).map((item, i) => (
+                      <li key={item} className="flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-foreground">
+                        <span className="font-data text-xs text-foreground-dim">{i + 1}</span>
+                        <span className="flex-1">{item}</span>
+                        <button
+                          type="button"
+                          disabled={!!interpGrade}
+                          onClick={() => moveRankItem(q.id, rankOrder[q.id] ?? q.items, i, -1)}
+                          className="focus-ring rounded px-1.5 py-0.5 text-foreground-dim disabled:opacity-30"
+                          aria-label={`Move ${item} up`}
+                        >
+                          &uarr;
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!!interpGrade}
+                          onClick={() => moveRankItem(q.id, rankOrder[q.id] ?? q.items, i, 1)}
+                          className="focus-ring rounded px-1.5 py-0.5 text-foreground-dim disabled:opacity-30"
+                          aria-label={`Move ${item} down`}
+                        >
+                          &darr;
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+
+                {graded && (
+                  <div className={`mt-3 rounded-lg px-3 py-2 text-xs leading-relaxed ${graded.correct ? "bg-good-soft text-good" : "bg-warn-soft text-warn"}`}>
+                    <strong>{graded.correct ? "Correct. " : `Score: ${graded.score}/100. `}</strong>
+                    {graded.rationale}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {!interpGrade ? (
+            <div className="flex justify-end">
+              <button
+                onClick={submitInterpretation}
+                disabled={interpSubmitting}
+                className="btn-press focus-ring rounded-xl bg-accent px-6 py-3 font-display font-bold text-white disabled:opacity-40"
+              >
+                {interpSubmitting ? "Checking…" : "Check my answers"}
+              </button>
+            </div>
+          ) : (
+            <div className="flex justify-end">
+              <button onClick={advance} className="btn-press focus-ring rounded-xl bg-accent px-6 py-3 font-display font-bold text-white">
+                Continue to {stages[stageIndex + 1]?.label.toLowerCase()} &rarr;
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {stage === "reasoning" && (
+        <div className="mt-5 flex flex-col gap-7">
+          <div>
+            <label className="font-display block text-[15px] font-bold text-foreground">{initial.conclusionLabel}</label>
+            <div className="mt-3 flex flex-col gap-2">
+              {initial.conclusionOptions.map((opt, i) => (
+                <label key={opt} className="flex items-center gap-2.5 rounded-xl border border-border bg-surface px-3.5 py-3 text-sm text-foreground">
+                  <input
+                    type="radio"
+                    name="conclusion"
+                    checked={conclusionIndex === i}
+                    onChange={() => setConclusionIndex(i)}
+                    className="h-4 w-4 accent-accent"
+                  />
+                  {opt}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="font-display block text-[15px] font-bold text-foreground">Differential — keep in mind</label>
+            <p className="mt-1 text-xs text-foreground-dim">Select every hypothesis worth keeping on the differential.</p>
+            <div className="mt-3 flex flex-col gap-2">
+              {initial.differentialOptions.map((opt, i) => (
+                <label key={opt} className="flex items-center gap-2.5 rounded-xl border border-border bg-surface px-3.5 py-3 text-sm text-foreground">
+                  <input
+                    type="checkbox"
+                    checked={differential.includes(i)}
+                    onChange={() => setDifferential((d) => (d.includes(i) ? d.filter((x) => x !== i) : [...d, i]))}
+                    className="h-4 w-4 accent-accent"
+                  />
+                  {opt}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="font-display block text-[15px] font-bold text-foreground">How confident are you?</label>
+            <div className="mt-3 flex gap-2">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setConfidence(n)}
+                  className={`focus-ring h-10 w-10 rounded-full font-display text-sm font-bold ${
+                    confidence === n ? "bg-accent text-white" : "border border-border text-foreground-dim"
+                  }`}
+                  aria-pressed={confidence === n}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1.5 text-xs text-foreground-dim">1 = not confident at all, 5 = very confident</p>
+          </div>
+
+          <div>
+            <label htmlFor="change-mind" className="font-display block text-[15px] font-bold text-foreground">
+              What finding would change your mind?
+            </label>
+            <textarea
+              id="change-mind"
+              value={changeMindText}
+              onChange={(e) => setChangeMindText(e.target.value)}
+              placeholder="If ___ were true, I’d reconsider because ___"
+              className="focus-ring mt-2 min-h-[80px] w-full rounded-xl border border-border bg-surface-2 px-3.5 py-3 text-sm text-foreground outline-none"
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              disabled={!canProceedReasoning}
+              onClick={advance}
+              className="btn-press focus-ring rounded-xl bg-accent px-6 py-3 font-display font-bold text-white disabled:opacity-40"
+            >
+              Continue to {stages[stageIndex + 1]?.label.toLowerCase()} &rarr;
+            </button>
+          </div>
+        </div>
+      )}
+
+      {stage === "plan" && (
+        <div className="mt-5">
+          <label htmlFor="plan-text" className="font-display block text-[15px] font-bold text-foreground">
+            {initial.planPrompt.label}
+          </label>
+          <textarea
+            id="plan-text"
+            value={planText}
+            onChange={(e) => setPlanText(e.target.value)}
+            placeholder={initial.planPrompt.placeholder}
+            className="focus-ring mt-2 min-h-[140px] w-full rounded-xl border border-border bg-surface-2 px-3.5 py-3 text-sm text-foreground outline-none"
+          />
+          <div className="mt-4 rounded-xl bg-surface-2 p-4">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-foreground-dim">Consider covering</div>
+            <ul className="mt-2 flex flex-col gap-1.5">
+              {initial.planPrompt.safetyChecklist.map((c) => (
+                <li key={c} className="flex gap-2 text-sm text-foreground-dim">
+                  <span className="text-accent">&bull;</span>
+                  {c}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="mt-5 flex justify-end">
+            <button
+              disabled={planText.trim().length === 0 || grading}
+              onClick={submitPlan}
+              className="btn-press focus-ring rounded-xl bg-accent px-6 py-3 font-display font-bold text-white disabled:opacity-40"
+            >
+              {grading ? "Grading…" : "Submit for grading"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {stage === "event" && initial.unfoldingEvent && (
+        <div className="mt-5">
+          <div className="rounded-2xl bg-surface-2 p-4 text-sm leading-relaxed text-foreground">{initial.unfoldingEvent.prompt}</div>
+          <div className="mt-4 flex flex-col gap-2.5">
+            {initial.unfoldingEvent.choices.map((c) => (
+              <button
+                key={c.id}
+                disabled={grading}
+                onClick={() => {
+                  setEventChoiceId(c.id);
+                  finishCase(c.id);
+                }}
+                className="focus-ring rounded-xl border border-border bg-surface px-4 py-3 text-left text-sm font-semibold text-foreground hover:border-accent disabled:opacity-40"
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+          {grading && <p className="mt-3 text-sm text-foreground-dim">Grading&hellip;</p>}
+        </div>
+      )}
+
+      {stage === "debrief" && debrief && (
+        <div className="mt-5">
+          <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-surface-2 p-4">
+            <div
+              className={`font-display text-[44px] font-extrabold leading-none ${
+                debrief.overallScore >= 80 ? "text-good" : debrief.overallScore >= 55 ? "text-warn" : "text-bad"
+              }`}
+            >
+              {debrief.overallScore}
+            </div>
+            <div>
+              <Badge tone={debrief.verdict === "strong" ? "good" : debrief.verdict === "developing" ? "warn" : "bad"}>
+                {debrief.verdict === "strong" ? "Strong" : debrief.verdict === "developing" ? "Developing" : "Needs review"}
+              </Badge>
+              <div className="mt-1.5 text-sm text-foreground-dim">
+                {debrief.conclusionCorrect ? "Your leading answer matched the reviewed case." : "Your leading answer didn’t match the reviewed case."}
+              </div>
+            </div>
+          </div>
+
+          {debrief.calibration !== "unknown" && (
+            <div className="mt-3 rounded-xl bg-violet-soft px-3.5 py-2.5 text-sm text-violet">
+              Confidence check: you were{" "}
+              {debrief.calibration === "well_calibrated"
+                ? "well calibrated"
+                : debrief.calibration === "overconfident"
+                  ? "more confident than your performance supports"
+                  : "less confident than your performance deserved"}
+              .
+            </div>
+          )}
+
+          {eventChoiceId && debrief.eventConsequence && (
+            <div className="mt-4 rounded-xl bg-accent-soft p-4 text-sm leading-relaxed text-foreground">
+              <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-accent">What happened next</span>
+              {debrief.eventConsequence}
+            </div>
+          )}
+
+          <div className="mt-4 border-b border-border pb-4">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-foreground-dim">{debrief.content.correctConclusionLabel}</span>
+            <div className="font-display mt-1 text-lg font-bold text-accent">{debrief.content.correctConclusion}</div>
+            <p className="mt-1.5 text-sm leading-relaxed text-foreground-dim">{debrief.content.conclusionExplanation}</p>
+          </div>
+
+          <div className="border-b border-border py-3.5">
+            <h4 className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-foreground-dim">
+              On your {initial.actionLabel.toLowerCase()} ({debrief.planScore}/100)
+            </h4>
+            <p className="text-[14.5px] leading-relaxed text-foreground">{debrief.planFeedback}</p>
+          </div>
+
+          {debrief.missedConsiderations.length > 0 && (
+            <div className="border-b border-border py-3.5">
+              <h4 className="mb-1.5 text-[11px] font-bold uppercase tracking-wider text-foreground-dim">What to revisit</h4>
+              <ul className="flex flex-col gap-1.5 text-[14.5px] leading-relaxed text-foreground">
+                {debrief.missedConsiderations.map((m, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span className="text-bad">&mdash;</span>
+                    {m}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="mt-4 rounded-2xl bg-surface-2 p-4 text-sm leading-relaxed text-foreground-dim">
+            <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-foreground-dim">Next learning goal</span>
+            {debrief.content.nextLearningGoalHint}
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
+            <Link href={`/app/quiz/${caseId}`} className="focus-ring font-display text-sm font-bold text-accent">
+              Quick check quiz &rarr;
+            </Link>
+            <button onClick={finishAndSave} disabled={finished} className="btn-press focus-ring rounded-xl bg-accent px-6 py-3 font-display font-bold text-white disabled:opacity-60">
+              {finished ? "Saved — redirecting…" : "Finish & save progress"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
