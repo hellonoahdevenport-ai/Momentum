@@ -2,25 +2,81 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --surface-2: #f1f5f9;
+  --border: #e2e8f0;
+  --foreground: #1e293b;
+  --foreground-dim: #64748b;
+  --accent: #2563eb;
+  --accent-dark: #1e40af;
+  --accent-soft: #eaf0fe;
+  --good: #16a34a;
+  --good-soft: #dcfce7;
+  --warn: #d97706;
+  --warn-soft: #fef3c7;
+  --bad: #dc2626;
+  --bad-soft: #fee2e2;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-foreground-dim: var(--foreground-dim);
+  --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-accent-soft: var(--accent-soft);
+  --color-good: var(--good);
+  --color-good-soft: var(--good-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --font-display: var(--font-baloo);
+  --font-body: var(--font-inter);
+  --font-data: var(--font-plex-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.track-medicine {
+  --accent: #2563eb;
+  --accent-dark: #1e40af;
+  --accent-soft: #eaf0fe;
+}
+.track-nursing {
+  --accent: #7c3aed;
+  --accent-dark: #5b21b6;
+  --accent-soft: #f1eafe;
+}
+
+/* Casebook is a fixed light, bright product identity by design, not a
+   theme that follows the OS: no dark-mode media query here on purpose. */
+html {
+  color-scheme: light;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-display), system-ui, sans-serif;
+}
+.font-data {
+  font-family: var(--font-data), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.btn-chunky {
+  border-bottom-width: 4px;
+  transition: transform 0.05s, border-bottom-width 0.05s;
+}
+.btn-chunky:active:not(:disabled) {
+  transform: translateY(3px);
+  border-bottom-width: 1px;
+}
+.btn-chunky:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
