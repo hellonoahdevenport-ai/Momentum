@@ -99,6 +99,13 @@ export default function LibraryClient({ cards }: { cards: LibraryCard[] }) {
             A countdown is running — choose the right orders fast, or the patient declines.
           </p>
         </Link>
+        <Link href="/app/chart" className="card-lift block rounded-2xl border border-border bg-surface p-5">
+          <span className="text-xs font-bold uppercase tracking-wide text-teal">Documentation practice</span>
+          <h3 className="font-display mt-2 text-base font-bold text-foreground">Chart the encounter</h3>
+          <p className="mt-1.5 text-sm leading-relaxed text-foreground-dim">
+            Write a structured SOAP, ADPIE, or SBAR note and get completeness feedback section by section.
+          </p>
+        </Link>
       </div>
     </div>
   );

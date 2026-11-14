@@ -96,6 +96,11 @@ export default function AppHomePage() {
           <div className="font-display mt-3 text-lg font-bold text-foreground">Emergency room order entry</div>
           <p className="mt-1 text-sm text-foreground-dim">A countdown is running — move fast.</p>
         </Link>
+        <Link href="/app/chart" className="card-lift block rounded-3xl border border-border bg-surface p-6">
+          <Badge tone="teal">Documentation practice</Badge>
+          <div className="font-display mt-3 text-lg font-bold text-foreground">Chart the encounter</div>
+          <p className="mt-1 text-sm text-foreground-dim">Write a structured SOAP, ADPIE, or SBAR note.</p>
+        </Link>
       </div>
 
       <h2 className="font-display mt-12 text-lg font-bold text-foreground">Recent performance</h2>
