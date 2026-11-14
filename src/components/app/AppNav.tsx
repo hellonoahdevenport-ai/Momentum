@@ -70,9 +70,9 @@ export default function AppNav() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-3 sm:px-8">
           <Link href="/app" className="focus-ring flex items-center gap-2 rounded-lg">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent font-display text-sm font-extrabold text-white">
-              C
+              M
             </span>
-            <span className="font-display hidden text-base font-bold text-foreground sm:inline">Casebook</span>
+            <span className="font-display hidden text-base font-bold text-foreground sm:inline">Momentum</span>
           </Link>
 
           <nav className="hidden items-center gap-1 lg:flex">

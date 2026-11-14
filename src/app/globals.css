@@ -70,7 +70,7 @@
   --accent-soft: #e1f7ef;
 }
 
-/* Casebook is a fixed light, bright product identity by design, not a
+/* Momentum is a fixed light, bright product identity by design, not a
    theme that follows the OS: no dark-mode media query here on purpose. */
 html {
   color-scheme: light;

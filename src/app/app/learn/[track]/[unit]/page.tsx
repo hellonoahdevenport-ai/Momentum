@@ -25,7 +25,7 @@ export default async function UnitWorkspacePage({
         <Badge tone="neutral">Planned</Badge>
         <h1 className="font-display mt-4 text-2xl font-bold text-foreground">{unit.label} is on the roadmap</h1>
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-foreground-dim">
-          This unit is in Casebook’s taxonomy, but no case has been authored for {t.label} here yet. It’s shown
+          This unit is in Momentum’s taxonomy, but no case has been authored for {t.label} here yet. It’s shown
           honestly as planned rather than hidden.
         </p>
         <Link href={`/app/tracks/${track}`} className="focus-ring mt-6 inline-block font-display text-sm font-bold text-accent">

@@ -13,7 +13,7 @@ export const mayaChenCase: CaseFile = {
     title: "Maya Chen: Fatigue and Shortness of Breath",
     trackKey: "medicine",
     unitKey: "blood-immune",
-    author: "Casebook content team (fictional case; educational use only)",
+    author: "Momentum content team (fictional case; educational use only)",
     reviewers: [],
     reviewStatus: "needs_clinical_review",
     reviewDate: null,

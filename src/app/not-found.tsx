@@ -4,7 +4,7 @@ export default function NotFound() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-5 py-24 text-center">
       <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent font-display text-lg font-extrabold text-white">
-        C
+        M
       </span>
       <h1 className="font-display mt-6 text-3xl font-extrabold text-foreground">Page not found</h1>
       <p className="mt-3 max-w-sm text-sm leading-relaxed text-foreground-dim">

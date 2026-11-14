@@ -4,7 +4,7 @@ import Badge from "@/components/ui/Badge";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: "Casebook is in pilot access. Pricing is not yet set.",
+  description: "Momentum is in pilot access. Pricing is not yet set.",
 };
 
 export default function PricingPage() {
@@ -13,7 +13,7 @@ export default function PricingPage() {
       <Badge tone="coral">Pricing not finalized</Badge>
       <h1 className="font-display mt-4 text-4xl font-extrabold text-foreground">Pilot access</h1>
       <p className="mt-4 max-w-xl text-base leading-relaxed text-foreground-dim">
-        Casebook hasn’t set pricing yet. We’d rather tell you that plainly than invent numbers. If you’re a school,
+        Momentum hasn’t set pricing yet. We’d rather tell you that plainly than invent numbers. If you’re a school,
         program, or individual learner who wants in early, reach out — this page is a placeholder that’s easy to
         edit once a model is decided.
       </p>

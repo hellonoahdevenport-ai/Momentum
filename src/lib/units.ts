@@ -4,13 +4,13 @@ export interface Unit {
   label: string;
   color: string;
   hint: string;
-  /** Reference mapping for content maintainers. Casebook's own taxonomy;
+  /** Reference mapping for content maintainers. Momentum's own taxonomy;
    * mapped to official outlines where a case has actually been authored
    * and reviewed. Update when source documents change. */
   mapping: string;
 }
 
-// Shared organ-system / competency spine, used as Casebook's own learning
+// Shared organ-system / competency spine, used as Momentum's own learning
 // taxonomy for both tracks. Only units with an authored, reviewed case are
 // "available" in the registry — the rest are "planned" until built.
 export const UNITS: Unit[] = [
@@ -20,7 +20,7 @@ export const UNITS: Unit[] = [
     label: "Foundations",
     color: "#4d5771",
     hint: "general principles: cell biology, genetics, pharmacology, microbiology",
-    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
+    mapping: "Momentum taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "blood-immune",
@@ -37,7 +37,7 @@ export const UNITS: Unit[] = [
     label: "Cardiovascular",
     color: "#ff6b4a",
     hint: "cardiovascular presentations",
-    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
+    mapping: "Momentum taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "respiratory",
@@ -45,7 +45,7 @@ export const UNITS: Unit[] = [
     label: "Respiratory",
     color: "#17b890",
     hint: "respiratory presentations",
-    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
+    mapping: "Momentum taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "renal",
@@ -53,7 +53,7 @@ export const UNITS: Unit[] = [
     label: "Renal & Urinary",
     color: "#0e8e6d",
     hint: "renal and urinary presentations",
-    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
+    mapping: "Momentum taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "gi",
@@ -61,7 +61,7 @@ export const UNITS: Unit[] = [
     label: "Gastrointestinal",
     color: "#c2660a",
     hint: "gastrointestinal presentations",
-    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
+    mapping: "Momentum taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "msk",
@@ -69,7 +69,7 @@ export const UNITS: Unit[] = [
     label: "Musculoskeletal & Skin",
     color: "#a78bfa",
     hint: "musculoskeletal, skin, and soft-tissue presentations",
-    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
+    mapping: "Momentum taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "nervous",
@@ -77,7 +77,7 @@ export const UNITS: Unit[] = [
     label: "Nervous System",
     color: "#1e3fd1",
     hint: "neurological presentations, including special senses",
-    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
+    mapping: "Momentum taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "endocrine",
@@ -85,7 +85,7 @@ export const UNITS: Unit[] = [
     label: "Endocrine",
     color: "#d23c2e",
     hint: "endocrine and metabolic presentations",
-    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
+    mapping: "Momentum taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "reproductive",
@@ -93,7 +93,7 @@ export const UNITS: Unit[] = [
     label: "Reproductive",
     color: "#ff6b4a",
     hint: "reproductive, obstetric, and breast presentations",
-    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
+    mapping: "Momentum taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "behavioral",
@@ -101,7 +101,7 @@ export const UNITS: Unit[] = [
     label: "Behavioral Health",
     color: "#17b890",
     hint: "behavioral health and psychosocial presentations",
-    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
+    mapping: "Momentum taxonomy only — official mapping not yet reviewed.",
   },
   {
     key: "multisystem",
@@ -109,7 +109,7 @@ export const UNITS: Unit[] = [
     label: "Multisystem",
     color: "#172237",
     hint: "capstone presentations spanning more than one system",
-    mapping: "Casebook taxonomy only — official mapping not yet reviewed.",
+    mapping: "Momentum taxonomy only — official mapping not yet reviewed.",
   },
 ];
 

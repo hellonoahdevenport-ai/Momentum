@@ -55,10 +55,10 @@ export default function SiteFooter() {
         </div>
         <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 text-xs text-foreground-dim sm:flex-row sm:items-center sm:justify-between">
           <p>
-            Casebook is a working product name. Built for education and simulation only — not a clinical
+            Momentum is a working product name. Built for education and simulation only — not a clinical
             decision-support tool, and not a substitute for supervision, local policy, or professional judgment.
           </p>
-          <p className="whitespace-nowrap">&copy; {new Date().getFullYear()} Casebook</p>
+          <p className="whitespace-nowrap">&copy; {new Date().getFullYear()} Momentum</p>
         </div>
       </div>
     </footer>

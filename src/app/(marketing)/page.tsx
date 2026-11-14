@@ -7,7 +7,7 @@ import ProductPreview from "@/components/marketing/ProductPreview";
 const FAQS = [
   {
     q: "Is this a real patient or a clinical tool?",
-    a: "No. Every case is fictional and built for education and simulation only. Casebook is not a clinical decision-support tool and never replaces supervision, local policy, clinical judgment, or professional care.",
+    a: "No. Every case is fictional and built for education and simulation only. Momentum is not a clinical decision-support tool and never replaces supervision, local policy, clinical judgment, or professional care.",
   },
   {
     q: "Do I need an account to try it?",
@@ -18,8 +18,8 @@ const FAQS = [
     a: "Not yet. Every case clearly shows a content-review status. Nothing is labeled clinically validated unless an actual clinician or nursing-faculty review has happened and been recorded.",
   },
   {
-    q: "Is Casebook the final product name?",
-    a: "Casebook is a working title. Name, pricing, and company details are still open.",
+    q: "Is Momentum the final product name?",
+    a: "Momentum is a working title. Name, pricing, and company details are still open.",
   },
 ];
 
@@ -34,7 +34,7 @@ export default function HomePage() {
               Practice clinical reasoning before it counts.
             </h1>
             <p className="mt-5 max-w-lg text-lg leading-relaxed text-foreground-dim">
-              Casebook is a learning environment for medicine and nursing students: interview a fictional patient,
+              Momentum is a learning environment for medicine and nursing students: interview a fictional patient,
               gather evidence, commit to a call, and get a transparent debrief &mdash; for education and simulation
               only.
             </p>
@@ -89,7 +89,7 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
         <h2 className="font-display text-center text-sm font-bold uppercase tracking-wider text-foreground-dim">
-          The Casebook loop
+          The Momentum loop
         </h2>
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {[

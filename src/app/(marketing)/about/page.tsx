@@ -3,7 +3,7 @@ import Badge from "@/components/ui/Badge";
 
 export const metadata: Metadata = {
   title: "About",
-  description: "What Casebook is building, and what’s still open.",
+  description: "What Momentum is building, and what’s still open.",
 };
 
 export default function AboutPage() {
@@ -12,12 +12,12 @@ export default function AboutPage() {
       <Badge tone="accent">About</Badge>
       <h1 className="font-display mt-4 text-4xl font-extrabold text-foreground">Practice before it counts</h1>
       <p className="mt-5 text-base leading-relaxed text-foreground-dim">
-        Casebook (a working title) is an early-stage education product for medicine and nursing students. The goal
+        Momentum (a working title) is an early-stage education product for medicine and nursing students. The goal
         is simple to say and hard to build well: let a trainee work a full case — interview, evidence, reasoning,
         plan, debrief — the way they actually will in practice, with honest feedback instead of just a score.
       </p>
       <p className="mt-4 text-base leading-relaxed text-foreground-dim">
-        Casebook is for education and simulation only. It is not a clinical decision-support tool, and it does not
+        Momentum is for education and simulation only. It is not a clinical decision-support tool, and it does not
         replace supervision, local policy, clinical judgment, or professional care. Every case is fictional.
       </p>
 

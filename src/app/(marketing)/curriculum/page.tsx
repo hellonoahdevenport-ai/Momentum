@@ -8,7 +8,7 @@ import Badge from "@/components/ui/Badge";
 
 export const metadata: Metadata = {
   title: "Curriculum",
-  description: "What’s available now in Casebook, and an honest roadmap of what’s planned.",
+  description: "What’s available now in Momentum, and an honest roadmap of what’s planned.",
 };
 
 export default function CurriculumPage() {
@@ -17,7 +17,7 @@ export default function CurriculumPage() {
       <Badge tone="accent">Curriculum map</Badge>
       <h1 className="font-display mt-4 text-4xl font-extrabold text-foreground">What’s here, and what’s next</h1>
       <p className="mt-4 max-w-xl text-base leading-relaxed text-foreground-dim">
-        Casebook organizes both tracks around the same {UNITS.length} organ-system and competency units. Right now,
+        Momentum organizes both tracks around the same {UNITS.length} organ-system and competency units. Right now,
         one authored case is live per track. Everything else on the map is shown honestly as planned, not as a
         finished library.
       </p>

@@ -35,7 +35,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="font-display text-base font-bold text-foreground">Before real accounts exist</h2>
           <p className="mt-2">
-            Once Casebook stores real account or learner data, this policy will need to cover: what’s collected, why,
+            Once Momentum stores real account or learner data, this policy will need to cover: what’s collected, why,
             retention periods, data export and deletion, any third-party processors, and applicable law (for
             example, FERPA for schools, and a HIPAA assessment if any deployment context could bring the product
             into scope — not assumed true just because the subject matter is medical). None of that infrastructure

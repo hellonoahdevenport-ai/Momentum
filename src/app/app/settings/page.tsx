@@ -21,7 +21,7 @@ export default function SettingsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "casebook-progress-export.json";
+    a.download = "momentum-progress-export.json";
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -53,7 +53,7 @@ export default function SettingsPage() {
       <section className="mt-6 rounded-2xl border border-border bg-surface p-6">
         <h2 className="font-display text-base font-bold text-foreground">Accessibility</h2>
         <p className="mt-2 text-sm leading-relaxed text-foreground-dim">
-          Casebook is a fixed light theme by design, with high-contrast text and visible focus states throughout.
+          Momentum is a fixed light theme by design, with high-contrast text and visible focus states throughout.
           Motion follows your operating system’s reduced-motion setting automatically — there’s nothing to turn on
           here.
         </p>

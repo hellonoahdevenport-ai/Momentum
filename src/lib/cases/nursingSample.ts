@@ -13,7 +13,7 @@ export const nursingSampleCase: CaseFile = {
     title: "Jordan Alvarez: Post-Operative Day 1 Safety Assessment (sample — needs clinical review)",
     trackKey: "nursing",
     unitKey: "gi",
-    author: "Casebook content team (fictional case; educational use only; nursing-faculty review pending)",
+    author: "Momentum content team (fictional case; educational use only; nursing-faculty review pending)",
     reviewers: [],
     reviewStatus: "needs_clinical_review",
     reviewDate: null,

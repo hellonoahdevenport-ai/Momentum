@@ -20,7 +20,7 @@ export default function TermsPage() {
         <section>
           <h2 className="font-display text-base font-bold text-foreground">Educational use only</h2>
           <p className="mt-2">
-            Casebook is for education and simulation only. It is not a clinical decision-support tool, and it must
+            Momentum is for education and simulation only. It is not a clinical decision-support tool, and it must
             never be used as a substitute for supervision, local policy, clinical judgment, or professional care.
             Every patient, case, and result in this product is fictional.
           </p>
@@ -42,7 +42,7 @@ export default function TermsPage() {
         <section>
           <h2 className="font-display text-base font-bold text-foreground">Product name and availability</h2>
           <p className="mt-2">
-            &ldquo;Casebook&rdquo; is a working title and may change. Features described on this site may be planned rather
+            &ldquo;Momentum&rdquo; is a working title and may change. Features described on this site may be planned rather
             than available today — the curriculum map and each page say which is which.
           </p>
         </section>

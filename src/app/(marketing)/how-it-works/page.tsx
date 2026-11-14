@@ -5,7 +5,7 @@ import ProductPreview from "@/components/marketing/ProductPreview";
 
 export const metadata: Metadata = {
   title: "How it works",
-  description: "Walk through the Casebook case loop: brief, interview, evidence, reasoning, plan, and debrief.",
+  description: "Walk through the Momentum case loop: brief, interview, evidence, reasoning, plan, and debrief.",
 };
 
 const STAGES = [
@@ -47,7 +47,7 @@ export default function HowItWorksPage() {
       <Badge tone="accent">How it works</Badge>
       <h1 className="font-display mt-4 text-4xl font-extrabold text-foreground">One loop, worked all the way through</h1>
       <p className="mt-4 max-w-xl text-base leading-relaxed text-foreground-dim">
-        Every Casebook case moves through the same six stages. Here’s what each one actually looks like, using the
+        Every Momentum case moves through the same six stages. Here’s what each one actually looks like, using the
         real case workspace.
       </p>
 

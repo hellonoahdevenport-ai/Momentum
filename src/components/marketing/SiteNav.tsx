@@ -20,9 +20,9 @@ export default function SiteNav() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-8">
         <Link href="/" className="focus-ring flex items-center gap-2 rounded-lg">
           <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent font-display text-sm font-extrabold text-white">
-            C
+            M
           </span>
-          <span className="font-display text-lg font-bold text-foreground">Casebook</span>
+          <span className="font-display text-lg font-bold text-foreground">Momentum</span>
         </Link>
 
         <nav className="hidden items-center gap-7 lg:flex">

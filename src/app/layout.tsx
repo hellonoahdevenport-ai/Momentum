@@ -16,11 +16,11 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Casebook",
-    template: "%s · Casebook",
+    default: "Momentum",
+    template: "%s · Momentum",
   },
   description:
-    "Casebook is a working title for a medical and nursing education product: practice clinical reasoning in fictional, interactive cases. For education and simulation only.",
+    "Momentum is a working title for a medical and nursing education product: practice clinical reasoning in fictional, interactive cases. For education and simulation only.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

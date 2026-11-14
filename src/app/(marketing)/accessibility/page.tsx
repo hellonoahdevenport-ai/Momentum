@@ -3,7 +3,7 @@ import Badge from "@/components/ui/Badge";
 
 export const metadata: Metadata = {
   title: "Accessibility",
-  description: "Casebook’s accessibility target and current status.",
+  description: "Momentum’s accessibility target and current status.",
 };
 
 export default function AccessibilityPage() {
@@ -12,7 +12,7 @@ export default function AccessibilityPage() {
       <Badge tone="accent">Accessibility</Badge>
       <h1 className="font-display mt-4 text-3xl font-extrabold text-foreground">Our accessibility target</h1>
       <p className="mt-4 text-sm leading-relaxed text-foreground-dim">
-        Casebook is being built toward WCAG 2.2 AA as an engineering goal across the marketing site and the learning
+        Momentum is being built toward WCAG 2.2 AA as an engineering goal across the marketing site and the learning
         platform. This page describes what’s in place today and what’s still being worked on — it’s a statement of
         intent and current status, not a certification.
       </p>
