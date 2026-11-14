@@ -292,7 +292,7 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
 
   return (
     <div className={`track-${initial.meta.trackKey} mx-auto max-w-2xl px-5 pb-28 sm:px-8`}>
-      <div className="sticky top-16 z-10 -mx-5 border-b border-border bg-background px-5 pb-3 pt-4 sm:-mx-8 sm:px-8 lg:top-0">
+      <div className="-mx-5 border-b border-border bg-background px-5 pb-3 pt-4 sm:-mx-8 sm:px-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Badge tone="accent">{initial.meta.estimatedMinutes} min</Badge>

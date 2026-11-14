@@ -77,7 +77,7 @@ export default function ErScenarioClient({ scenario }: { scenario: ErScenarioPub
 
   return (
     <div className="mx-auto max-w-2xl px-5 pb-24 sm:px-8">
-      <div className="sticky top-16 z-10 -mx-5 border-b border-border bg-background px-5 pb-3 pt-4 sm:-mx-8 sm:px-8 lg:top-0">
+      <div className="-mx-5 border-b border-border bg-background px-5 pb-3 pt-4 sm:-mx-8 sm:px-8">
         <div className="flex items-center justify-between">
           <Link href="/app/er" className="focus-ring font-display text-sm font-bold text-accent">
             &larr; Exit
