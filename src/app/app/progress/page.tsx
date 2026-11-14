@@ -5,6 +5,9 @@ import { TRACKS, TRACK_ORDER } from "@/lib/tracks";
 import { UNITS } from "@/lib/units";
 import { loadProgress, unitStatus, type ProgressStore } from "@/lib/progress";
 import Badge from "@/components/ui/Badge";
+import LineChart from "@/components/charts/LineChart";
+import RadarChart from "@/components/charts/RadarChart";
+import HeatmapCalendar from "@/components/charts/HeatmapCalendar";
 
 export default function ProgressPage() {
   const [progress, setProgress] = useState<ProgressStore | null>(null);
@@ -21,6 +24,21 @@ export default function ProgressPage() {
 
   const unitHasCase = (trackKey: "medicine" | "nursing", unitKey: string) =>
     (trackKey === "medicine" && unitKey === "blood-immune") || (trackKey === "nursing" && unitKey === "gi");
+
+  const scoreTrend = [...attempts]
+    .sort((a, b) => a.completedAt - b.completedAt)
+    .map((a, i) => ({ label: `#${i + 1}`, value: a.overallScore }));
+
+  const radarAxes = UNITS.map((u) => {
+    const scores = attempts.filter((a) => a.unitKey === u.key).map((a) => a.overallScore);
+    return { label: u.mono, value: scores.length ? Math.max(...scores) : 0 };
+  });
+
+  const heatmapCounts: Record<string, number> = {};
+  attempts.forEach((a) => {
+    const key = new Date(a.completedAt).toISOString().slice(0, 10);
+    heatmapCounts[key] = (heatmapCounts[key] ?? 0) + 1;
+  });
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-10 sm:px-8">
@@ -50,6 +68,28 @@ export default function ProgressPage() {
           {calibrationCounts.underconfident > 0 && `${calibrationCounts.underconfident} attempt(s) were less confident than the result deserved.`}
         </div>
       )}
+
+      <div className="mt-8 grid gap-5 lg:grid-cols-2">
+        <div className="rounded-2xl border border-border bg-surface p-5">
+          <h2 className="font-display text-base font-bold text-foreground">Score trend</h2>
+          <div className="mt-3">
+            <LineChart points={scoreTrend} />
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border bg-surface p-5">
+          <h2 className="font-display text-base font-bold text-foreground">Competency coverage</h2>
+          <div className="mt-1">
+            <RadarChart axes={radarAxes} />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 rounded-2xl border border-border bg-surface p-5">
+        <h2 className="font-display text-base font-bold text-foreground">Activity</h2>
+        <div className="mt-3">
+          <HeatmapCalendar counts={heatmapCounts} />
+        </div>
+      </div>
 
       <h2 className="font-display mt-12 text-lg font-bold text-foreground">By track and unit</h2>
       <div className="mt-4 flex flex-col gap-8">

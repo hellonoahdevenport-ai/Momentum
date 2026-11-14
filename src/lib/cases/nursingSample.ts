@@ -61,6 +61,14 @@ export const nursingSampleCase: CaseFile = {
   ],
   initialAssessment:
     "Jordan is awake, alert, and oriented, lying still in bed and grimacing when he shifts position. The abdominal dressing is dry and intact. He has not yet gotten out of bed since returning from the recovery unit.",
+  examFindings: {
+    head: "Alert and oriented x3. No distress at rest.",
+    chest: "Breath sounds diminished at the bases bilaterally. Regular heart rate, no murmur.",
+    abdomen: "Dressing dry and intact over the surgical site, mild tenderness around the incision, no rebound or guarding.",
+    arms: "IV in place, no signs of infiltration. Skin warm and well-perfused.",
+    legs: "Legs symmetric, no calf tenderness or swelling. Sequential compression devices in place.",
+    skin: "Normal color, no diaphoresis at rest.",
+  },
   interviewTopics: [
     {
       id: "opening",

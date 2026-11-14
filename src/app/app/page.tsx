@@ -6,6 +6,7 @@ import { TRACKS, TRACK_ORDER } from "@/lib/tracks";
 import { UNITS } from "@/lib/units";
 import { loadProgress, dueReviewItems, type ProgressStore } from "@/lib/progress";
 import Badge from "@/components/ui/Badge";
+import Skeleton from "@/components/ui/Skeleton";
 
 export default function AppHomePage() {
   const [progress, setProgress] = useState<ProgressStore | null>(null);
@@ -98,7 +99,13 @@ export default function AppHomePage() {
       </div>
 
       <h2 className="font-display mt-12 text-lg font-bold text-foreground">Recent performance</h2>
-      {recent.length === 0 ? (
+      {!progress ? (
+        <div className="mt-4 flex flex-col gap-2.5">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-[52px] w-full" />
+          ))}
+        </div>
+      ) : recent.length === 0 ? (
         <p className="mt-3 text-sm text-foreground-dim">No attempts yet — your first debrief will show up here.</p>
       ) : (
         <div className="mt-4 flex flex-col gap-2.5">

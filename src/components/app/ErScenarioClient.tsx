@@ -5,8 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { gradeErScenario } from "@/lib/er/actions";
 import type { ErScenarioPublic, ErOutcome } from "@/lib/er/types";
 import Badge from "@/components/ui/Badge";
+import RadialProgress from "@/components/ui/RadialProgress";
+import CountUp from "@/components/ui/CountUp";
+import LiveVitalsStrip from "@/components/LiveVitalsStrip";
+import { useToast } from "@/context/ToastContext";
 
 export default function ErScenarioClient({ scenario }: { scenario: ErScenarioPublic }) {
+  const { push: pushToast } = useToast();
   const [phase, setPhase] = useState<"brief" | "running" | "grading" | "debrief">("brief");
   const [remaining, setRemaining] = useState(scenario.timeLimitSeconds);
   const [chosen, setChosen] = useState<string[]>([]);
@@ -23,6 +28,11 @@ export default function ErScenarioClient({ scenario }: { scenario: ErScenarioPub
     const result = await gradeErScenario(scenario.id, chosenRef.current, elapsed);
     setOutcome(result);
     setPhase("debrief");
+    pushToast({
+      title: result.stabilized ? "Patient stabilized" : "Patient declined",
+      body: `${result.criticalHit}/${result.criticalTotal} critical orders given`,
+      tone: result.stabilized ? "good" : "bad",
+    });
   }
 
   useEffect(() => {
@@ -63,6 +73,7 @@ export default function ErScenarioClient({ scenario }: { scenario: ErScenarioPub
   }
 
   const pct = Math.max(0, Math.round((remaining / scenario.timeLimitSeconds) * 100));
+  const urgent = remaining <= 15;
 
   return (
     <div className="mx-auto max-w-2xl px-5 pb-24 sm:px-8">
@@ -72,23 +83,15 @@ export default function ErScenarioClient({ scenario }: { scenario: ErScenarioPub
             &larr; Exit
           </Link>
           {phase === "running" && (
-            <span className={`font-data text-lg font-bold ${remaining <= 15 ? "text-bad" : "text-foreground"}`}>{remaining}s</span>
+            <RadialProgress value={pct} size={48} strokeWidth={4} color={urgent ? "var(--bad)" : "var(--accent)"}>
+              <span className={`font-data text-xs font-bold ${urgent ? "text-bad" : "text-foreground"}`}>{remaining}s</span>
+            </RadialProgress>
           )}
         </div>
         <h1 className="mt-2.5 text-[21px] font-bold text-foreground">{scenario.title}</h1>
-        <div className="font-data mt-2 flex flex-wrap gap-x-3.5 gap-y-1 text-xs">
-          {scenario.snapshotFacts.map((f) => (
-            <span key={f.label}>
-              <span className="text-foreground-dim">{f.label} </span>
-              {f.value}
-            </span>
-          ))}
+        <div className="mt-2">
+          <LiveVitalsStrip snapshotFacts={scenario.snapshotFacts} />
         </div>
-        {phase === "running" && (
-          <div className="mt-2.5 h-1.5 w-full rounded-full bg-surface-2">
-            <div className={`h-1.5 rounded-full transition-all ${remaining <= 15 ? "bg-bad" : "bg-accent"}`} style={{ width: `${pct}%` }} />
-          </div>
-        )}
       </div>
 
       {phase === "brief" && (
@@ -121,12 +124,12 @@ export default function ErScenarioClient({ scenario }: { scenario: ErScenarioPub
                       <button
                         key={o.id}
                         onClick={() => toggleOrder(o.id)}
-                        className={`focus-ring flex items-center justify-between rounded-xl border-2 px-3.5 py-2.5 text-left text-sm font-semibold ${
+                        className={`btn-press focus-ring flex items-center justify-between rounded-xl border-2 px-3.5 py-2.5 text-left text-sm font-semibold ${
                           active ? "border-accent bg-accent-soft text-accent" : "border-border text-foreground"
                         }`}
                       >
                         {o.label}
-                        {active && <span>&#10003;</span>}
+                        {active && <span className="pop-check">&#10003;</span>}
                       </button>
                     );
                   })}
@@ -142,7 +145,12 @@ export default function ErScenarioClient({ scenario }: { scenario: ErScenarioPub
         </div>
       )}
 
-      {phase === "grading" && <p className="mt-8 text-center text-sm text-foreground-dim">Grading&hellip;</p>}
+      {phase === "grading" && (
+        <div className="mt-10 flex flex-col items-center gap-3">
+          <div className="pulse-dot h-2.5 w-2.5 rounded-full bg-accent" />
+          <p className="text-sm text-foreground-dim">Grading&hellip;</p>
+        </div>
+      )}
 
       {phase === "debrief" && outcome && (
         <div className="mt-6">
@@ -154,16 +162,20 @@ export default function ErScenarioClient({ scenario }: { scenario: ErScenarioPub
           <div className="mt-4 grid grid-cols-3 gap-3 text-center">
             <div className="rounded-xl border border-border bg-surface p-3">
               <div className="font-display text-xl font-bold text-foreground">
-                {outcome.criticalHit}/{outcome.criticalTotal}
+                <CountUp value={outcome.criticalHit} />/{outcome.criticalTotal}
               </div>
               <div className="text-[11px] text-foreground-dim">Critical orders</div>
             </div>
             <div className="rounded-xl border border-border bg-surface p-3">
-              <div className={`font-display text-xl font-bold ${outcome.harmfulHit > 0 ? "text-bad" : "text-foreground"}`}>{outcome.harmfulHit}</div>
+              <div className={`font-display text-xl font-bold ${outcome.harmfulHit > 0 ? "text-bad" : "text-foreground"}`}>
+                <CountUp value={outcome.harmfulHit} />
+              </div>
               <div className="text-[11px] text-foreground-dim">Harmful orders</div>
             </div>
             <div className="rounded-xl border border-border bg-surface p-3">
-              <div className={`font-display text-xl font-bold ${outcome.withinTime ? "text-foreground" : "text-bad"}`}>{outcome.timeUsedSeconds}s</div>
+              <div className={`font-display text-xl font-bold ${outcome.withinTime ? "text-foreground" : "text-bad"}`}>
+                <CountUp value={outcome.timeUsedSeconds} />s
+              </div>
               <div className="text-[11px] text-foreground-dim">Time used</div>
             </div>
           </div>

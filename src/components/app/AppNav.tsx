@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRole } from "@/context/RoleContext";
 import RoleSwitcher from "@/components/app/RoleSwitcher";
+import NotificationCenter from "@/components/app/NotificationCenter";
 
 const PRIMARY_LINKS = [
   { href: "/app", label: "Home", icon: "home" },
@@ -94,6 +95,18 @@ export default function AppNav() {
                 {role === "owner" ? "Owner view →" : "Educator view →"}
               </Link>
             )}
+            <button
+              onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
+              className="focus-ring hidden items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-foreground-dim hover:text-foreground sm:flex"
+              aria-label="Open command palette"
+            >
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M11 11L14.5 14.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              <kbd className="font-data text-[10px]">&#8984;K</kbd>
+            </button>
+            <NotificationCenter />
             <RoleSwitcher compact />
             <Link href="/app/settings" className="focus-ring flex h-9 w-9 items-center justify-center rounded-full border border-border text-foreground-dim hover:text-foreground">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">

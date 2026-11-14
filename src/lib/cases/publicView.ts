@@ -45,6 +45,7 @@ export function toPublicView(caseFile: CaseFile): CasePublicView {
     presentingIssue: caseFile.presentingIssue,
     snapshotFacts: caseFile.snapshotFacts,
     initialAssessment: caseFile.initialAssessment,
+    examFindings: caseFile.examFindings,
     evidenceCategories: caseFile.evidenceCategories,
     evidenceCatalog: caseFile.evidenceCatalog.map((e) => ({
       id: e.id,

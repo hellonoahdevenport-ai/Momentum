@@ -14,14 +14,34 @@ import type { CasePublicView, EvidenceResult, InterpretationGradeResult, Debrief
 import { recordCaseAttempt, loadProgress } from "@/lib/progress";
 import Badge from "@/components/ui/Badge";
 import ReviewStatusBadge from "@/components/ReviewStatusBadge";
+import LiveVitalsStrip from "@/components/LiveVitalsStrip";
+import AnatomyDiagram from "@/components/AnatomyDiagram";
+import RadialProgress from "@/components/ui/RadialProgress";
+import CountUp from "@/components/ui/CountUp";
+import SampleActivityFeed from "@/components/app/SampleActivityFeed";
+import { useToast } from "@/context/ToastContext";
+
+type PipelineStage = "ordered" | "collected" | "in-lab";
+const PIPELINE_ORDER: PipelineStage[] = ["ordered", "collected", "in-lab"];
+const PIPELINE_LABEL: Record<PipelineStage, string> = {
+  ordered: "Ordered",
+  collected: "Collected",
+  "in-lab": "In lab",
+};
 
 interface ChatTurn {
   role: "patient" | "you";
   text: string;
+  atTime?: string;
+}
+
+function nowLabel(): string {
+  return new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
 export default function CaseFlowClient({ caseId, initial }: { caseId: string; initial: CasePublicView }) {
   const router = useRouter();
+  const { push: pushToast } = useToast();
   const stages = initial.stages;
   const [stageIndex, setStageIndex] = useState(0);
   const [furthest, setFurthest] = useState(0);
@@ -47,12 +67,14 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
 
   // --- evidence ---
   const [selected, setSelected] = useState<string[]>([]);
-  const [results, setResults] = useState<Record<string, EvidenceResult | "pending" | undefined>>({});
+  const [results, setResults] = useState<Record<string, EvidenceResult | PipelineStage | undefined>>({});
   const [marks, setMarks] = useState<Record<string, "normal" | "abnormal">>({});
 
   // --- interpretation ---
   const [answers, setAnswers] = useState<Record<string, number | number[] | string[]>>({});
   const [rankOrder, setRankOrder] = useState<Record<string, string[]>>({});
+  const dragFrom = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [interpGrade, setInterpGrade] = useState<InterpretationGradeResult | null>(null);
   const [interpSubmitting, setInterpSubmitting] = useState(false);
 
@@ -98,7 +120,7 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
     setChatBusy(true);
     try {
       const { text } = await startInterview(caseId);
-      setTurns([{ role: "patient", text }]);
+      setTurns([{ role: "patient", text, atTime: nowLabel() }]);
     } catch {
       setErrorMsg("Couldn’t start the interview. Try again.");
     } finally {
@@ -111,13 +133,13 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
     const q = chatInput.trim();
     if (!q || chatBusy) return;
     setChatInput("");
-    setTurns((t) => [...t, { role: "you", text: q }]);
+    setTurns((t) => [...t, { role: "you", text: q, atTime: nowLabel() }]);
     setChatBusy(true);
     try {
       const { text, topicId, usedAI } = await askPatient(caseId, q, askedTopicIds, turns);
       if (topicId) setAskedTopicIds((ids) => (ids.includes(topicId) ? ids : [...ids, topicId]));
       if (usedAI) setAiLiveThisCase(true);
-      setTurns((t) => [...t, { role: "patient", text }]);
+      setTurns((t) => [...t, { role: "patient", text, atTime: nowLabel() }]);
     } catch {
       setErrorMsg("Couldn’t reach the patient. Try again.");
     } finally {
@@ -136,13 +158,19 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
     if (!ids.length) return;
     setResults((r) => {
       const next = { ...r };
-      ids.forEach((id) => (next[id] = "pending"));
+      ids.forEach((id) => (next[id] = "ordered"));
       return next;
+    });
+    ids.forEach((id, i) => {
+      const base = i * 180;
+      setTimeout(() => setResults((r) => (r[id] === "ordered" ? { ...r, [id]: "collected" } : r)), base + 350);
+      setTimeout(() => setResults((r) => (r[id] === "collected" ? { ...r, [id]: "in-lab" } : r)), base + 750);
     });
     try {
       const fetched = await orderEvidence(caseId, ids);
       fetched.forEach((item, i) => {
-        setTimeout(() => setResults((r) => ({ ...r, [item.id]: item })), 400 + i * 220);
+        const base = i * 180;
+        setTimeout(() => setResults((r) => ({ ...r, [item.id]: item })), base + 1150);
       });
     } catch {
       setErrorMsg("Couldn’t pull results. Try again.");
@@ -159,6 +187,14 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
     const target = index + dir;
     if (target < 0 || target >= next.length) return;
     [next[index], next[target]] = [next[target], next[index]];
+    setRanking(qid, next);
+  }
+
+  function reorderRankItem(qid: string, items: string[], fromIndex: number, toIndex: number) {
+    if (fromIndex === toIndex) return;
+    const next = [...items];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
     setRanking(qid, next);
   }
 
@@ -200,6 +236,11 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
       setDebrief(result);
       setStageIndex(stages.length - 1);
       setFurthest(stages.length - 1);
+      pushToast({
+        title: `Debrief ready — ${result.overallScore}/100`,
+        body: result.verdict === "strong" ? "Strong work on this case." : "Take a look at what to revisit.",
+        tone: result.overallScore >= 80 ? "good" : result.overallScore >= 55 ? "warn" : "bad",
+      });
     } catch {
       setErrorMsg("Grading failed. Try again.");
     } finally {
@@ -270,13 +311,8 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
           <span className="text-[11px] font-bold uppercase tracking-wider text-foreground-dim">Chief concern </span>
           {initial.presentingIssue}
         </p>
-        <div className="font-data mt-2 flex flex-wrap gap-x-3.5 gap-y-1 text-xs">
-          {initial.snapshotFacts.map((f) => (
-            <span key={f.label}>
-              <span className="text-foreground-dim">{f.label} </span>
-              {f.value}
-            </span>
-          ))}
+        <div className="mt-2">
+          <LiveVitalsStrip snapshotFacts={initial.snapshotFacts} />
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {stage === "interview" && (
@@ -359,6 +395,9 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
             This is a fictional case for education and simulation only — not a substitute for supervision, local
             policy, or professional judgment.
           </div>
+          <div className="mt-4">
+            <SampleActivityFeed />
+          </div>
           <div className="mt-6 flex justify-end">
             <button
               onClick={beginInterview}
@@ -376,13 +415,25 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
           <div ref={transcriptRef} className="flex max-h-[420px] flex-col overflow-y-auto pr-0.5">
             {turns.map((t, i) => (
               <div key={i} className="border-b border-border py-3">
-                <div className={`mb-1 text-[11px] font-bold uppercase tracking-wide ${t.role === "you" ? "text-accent" : "text-foreground-dim"}`}>
-                  {t.role === "you" ? "You" : initial.patient.name}
+                <div className="mb-1 flex items-baseline justify-between">
+                  <span className={`text-[11px] font-bold uppercase tracking-wide ${t.role === "you" ? "text-accent" : "text-foreground-dim"}`}>
+                    {t.role === "you" ? "You" : initial.patient.name}
+                  </span>
+                  {t.atTime && <span className="font-data text-[10px] text-foreground-dim">{t.atTime}</span>}
                 </div>
                 <p className="text-[15px] leading-relaxed text-foreground">{t.text}</p>
               </div>
             ))}
-            {chatBusy && <p className="py-3 text-sm italic text-foreground-dim">&hellip;</p>}
+            {chatBusy && (
+              <div className="flex items-center gap-1.5 py-3" aria-live="polite" aria-label={`${initial.patient.name} is typing`}>
+                <span className="text-[11px] font-bold uppercase tracking-wide text-foreground-dim">{initial.patient.name}</span>
+                <span className="flex gap-0.5">
+                  {[0, 1, 2].map((i) => (
+                    <span key={i} className="typing-dot h-1.5 w-1.5 rounded-full bg-foreground-dim" style={{ animationDelay: `${i * 0.15}s` }} />
+                  ))}
+                </span>
+              </div>
+            )}
           </div>
           <div className="mt-3.5 flex items-center gap-2 rounded-2xl bg-surface-2 py-1.5 pl-4 pr-1.5">
             <label htmlFor="chat-input" className="sr-only">
@@ -425,6 +476,10 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
             {initial.initialAssessment}
           </div>
 
+          <div className="mt-4">
+            <AnatomyDiagram findings={initial.examFindings} />
+          </div>
+
           {initial.evidenceCategories.map((cat) => {
             const items = initial.evidenceCatalog.filter((e) => e.category === cat);
             if (!items.length) return null;
@@ -453,8 +508,27 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
                           {item.invasive && <Badge tone="warn">Invasive</Badge>}
                           {item.costNote === "higher cost" && <Badge tone="coral">Higher cost</Badge>}
                         </div>
-                        {result === "pending" && <div className="font-data text-xs text-foreground-dim">pending&hellip;</div>}
-                        {result && result !== "pending" && (() => {
+                        {typeof result === "string" && (
+                          <div className="mt-1.5 flex items-center gap-2">
+                            {PIPELINE_ORDER.map((stage, i) => {
+                              const currentIdx = PIPELINE_ORDER.indexOf(result);
+                              const done = i < currentIdx;
+                              const active = i === currentIdx;
+                              return (
+                                <div key={stage} className="flex items-center gap-1.5">
+                                  <span
+                                    className={`h-1.5 w-1.5 rounded-full ${active ? "pulse-dot bg-accent" : done ? "bg-accent" : "bg-border-strong"}`}
+                                  />
+                                  <span className={`font-data text-[10px] ${active ? "text-accent" : "text-foreground-dim"}`}>
+                                    {PIPELINE_LABEL[stage]}
+                                  </span>
+                                  {i < PIPELINE_ORDER.length - 1 && <span className="h-px w-3 bg-border-strong" />}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {result && typeof result !== "string" && (() => {
                           const mark = marks[item.id];
                           const actuallyAbnormal = result.resultFlag !== "normal";
                           const markCorrect = mark ? (mark === "abnormal") === actuallyAbnormal : false;
@@ -596,8 +670,37 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
 
                 {q.type === "ranking" && (
                   <ol className="mt-3 flex flex-col gap-2">
-                    {(rankOrder[q.id] ?? q.items).map((item, i) => (
-                      <li key={item} className="flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-foreground">
+                    {(rankOrder[q.id] ?? q.items).map((item, i) => {
+                      const currentItems = rankOrder[q.id] ?? q.items;
+                      return (
+                      <li
+                        key={item}
+                        draggable={!interpGrade}
+                        onDragStart={() => {
+                          dragFrom.current = i;
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragOverIndex(i);
+                        }}
+                        onDragLeave={() => setDragOverIndex((d) => (d === i ? null : d))}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (dragFrom.current !== null) reorderRankItem(q.id, currentItems, dragFrom.current, i);
+                          dragFrom.current = null;
+                          setDragOverIndex(null);
+                        }}
+                        onDragEnd={() => {
+                          dragFrom.current = null;
+                          setDragOverIndex(null);
+                        }}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm text-foreground transition-colors ${
+                          dragOverIndex === i ? "border-accent bg-accent-soft" : "border-border bg-surface-2"
+                        } ${!interpGrade ? "cursor-grab active:cursor-grabbing" : ""}`}
+                      >
+                        <span className="text-foreground-dim" aria-hidden="true">
+                          &#8942;&#8942;
+                        </span>
                         <span className="font-data text-xs text-foreground-dim">{i + 1}</span>
                         <span className="flex-1">{item}</span>
                         <button
@@ -619,7 +722,8 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
                           &darr;
                         </button>
                       </li>
-                    ))}
+                      );
+                    })}
                   </ol>
                 )}
 
@@ -795,13 +899,20 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
       {stage === "debrief" && debrief && (
         <div className="mt-5">
           <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-surface-2 p-4">
-            <div
-              className={`font-display text-[44px] font-extrabold leading-none ${
-                debrief.overallScore >= 80 ? "text-good" : debrief.overallScore >= 55 ? "text-warn" : "text-bad"
-              }`}
+            <RadialProgress
+              value={debrief.overallScore}
+              size={78}
+              strokeWidth={7}
+              color={debrief.overallScore >= 80 ? "var(--good)" : debrief.overallScore >= 55 ? "var(--warn)" : "var(--bad)"}
             >
-              {debrief.overallScore}
-            </div>
+              <span
+                className={`font-display text-2xl font-extrabold leading-none ${
+                  debrief.overallScore >= 80 ? "text-good" : debrief.overallScore >= 55 ? "text-warn" : "text-bad"
+                }`}
+              >
+                <CountUp value={debrief.overallScore} />
+              </span>
+            </RadialProgress>
             <div>
               <Badge tone={debrief.verdict === "strong" ? "good" : debrief.verdict === "developing" ? "warn" : "bad"}>
                 {debrief.verdict === "strong" ? "Strong" : debrief.verdict === "developing" ? "Developing" : "Needs review"}

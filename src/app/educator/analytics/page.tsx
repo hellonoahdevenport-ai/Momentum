@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Badge from "@/components/ui/Badge";
 import { loadProgress, type ProgressStore } from "@/lib/progress";
+import HeatmapCalendar from "@/components/charts/HeatmapCalendar";
 
 export default function EducatorAnalyticsPage() {
   const [progress, setProgress] = useState<ProgressStore | null>(null);
@@ -46,6 +47,19 @@ export default function EducatorAnalyticsPage() {
       </div>
 
       {attempts.length === 0 && <p className="mt-6 text-sm text-foreground-dim">No attempts logged on this device yet.</p>}
+
+      {attempts.length > 0 && (
+        <div className="mt-8">
+          <h3 className="font-display text-base font-bold text-foreground">Activity</h3>
+          <div className="mt-3">
+            <HeatmapCalendar counts={attempts.reduce<Record<string, number>>((acc, a) => {
+              const key = new Date(a.completedAt).toISOString().slice(0, 10);
+              acc[key] = (acc[key] ?? 0) + 1;
+              return acc;
+            }, {})} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

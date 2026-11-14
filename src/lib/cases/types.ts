@@ -164,6 +164,7 @@ export interface CaseFile {
   presentingIssue: string;
   snapshotFacts: SnapshotFact[];
   initialAssessment: string;
+  examFindings: Record<string, string>;
   interviewTopics: InterviewTopic[];
   evidenceCategories: string[];
   evidenceCatalog: EvidenceItem[];
@@ -188,6 +189,7 @@ export interface CasePublicView {
   presentingIssue: string;
   snapshotFacts: SnapshotFact[];
   initialAssessment: string;
+  examFindings: Record<string, string>;
   evidenceCategories: string[];
   evidenceCatalog: EvidencePublic[];
   stages: CaseStage[];

@@ -60,6 +60,14 @@ export const mayaChenCase: CaseFile = {
   ],
   initialAssessment:
     "Maya appears mildly pale. Conjunctival pallor is noted on exam. Heart rate is mildly elevated; rhythm is regular with no murmur. Lungs are clear. Abdomen is soft and non-tender, no organomegaly. No jaundice or lymphadenopathy.",
+  examFindings: {
+    head: "Conjunctival pallor noted. No jaundice. Oral mucosa appears pale.",
+    chest: "Heart rate mildly elevated, rhythm regular, no murmur. Lungs clear to auscultation bilaterally.",
+    abdomen: "Soft, non-tender, no organomegaly, no masses.",
+    arms: "Koilonychia (spoon-shaped nails) visible on inspection. No track marks or bruising.",
+    legs: "No edema. No calf tenderness.",
+    skin: "Mild pallor overall, no rashes or petechiae.",
+  },
   interviewTopics: [
     {
       id: "opening",

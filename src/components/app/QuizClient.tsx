@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { checkQuizAnswer } from "@/lib/cases/actions";
 import type { TrackKey } from "@/lib/tracks";
+import CountUp from "@/components/ui/CountUp";
+import { useToast } from "@/context/ToastContext";
 
 interface QuizQuestionPublic {
   id: string;
@@ -28,6 +30,7 @@ export default function QuizClient({
   const [score, setScore] = useState(0);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const { push: pushToast } = useToast();
 
   const q = questions[index];
 
@@ -47,6 +50,11 @@ export default function QuizClient({
   function next() {
     if (index + 1 >= questions.length) {
       setDone(true);
+      pushToast({
+        title: `Quick check complete — ${score}/${questions.length}`,
+        body: title,
+        tone: score / questions.length >= 0.8 ? "good" : score / questions.length >= 0.5 ? "warn" : "bad",
+      });
       return;
     }
     setIndex((i) => i + 1);
@@ -67,7 +75,7 @@ export default function QuizClient({
     return (
       <div className={`track-${trackKey} mx-auto max-w-xl px-5 pt-16 pb-24 text-center sm:px-8`}>
         <div className={`font-display mx-auto text-[52px] font-extrabold ${pct >= 80 ? "text-good" : pct >= 50 ? "text-warn" : "text-bad"}`}>
-          {score}/{questions.length}
+          <CountUp value={score} durationMs={500} />/{questions.length}
         </div>
         <p className="mt-2 text-sm text-foreground-dim">Quick check &middot; {title}</p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">

@@ -5,6 +5,7 @@ import { useState } from "react";
 import EcgStrip from "@/components/EcgStrip";
 import { checkRhythmAnswer, checkNextStepAnswer } from "@/lib/ecg/actions";
 import type { EcgRhythmPublic } from "@/lib/ecg/types";
+import { useToast } from "@/context/ToastContext";
 
 interface QuestionPublic {
   id: string;
@@ -20,6 +21,7 @@ export default function EcgPracticeClient({ rhythm, nextStepQuestion }: { rhythm
   const [stepPicked, setStepPicked] = useState<number | null>(null);
   const [stepResult, setStepResult] = useState<{ correct: boolean; correctIndex: number; rationale: string } | null>(null);
   const [stepBusy, setStepBusy] = useState(false);
+  const { push: pushToast } = useToast();
 
   async function submitRhythm(i: number) {
     if (rhythmResult || busy) return;
@@ -40,6 +42,11 @@ export default function EcgPracticeClient({ rhythm, nextStepQuestion }: { rhythm
     try {
       const res = await checkNextStepAnswer(rhythm.id, i);
       setStepResult(res);
+      pushToast({
+        title: res.correct ? "Correct — strip complete" : "Rhythm strip complete",
+        body: rhythm.shortLabel,
+        tone: res.correct ? "good" : "warn",
+      });
     } finally {
       setStepBusy(false);
     }
