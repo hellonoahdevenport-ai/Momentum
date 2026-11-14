@@ -2,7 +2,7 @@
 
 import { getCaseFile } from "./registry";
 import { gradeInterpretation, gradeReasoningAndPlan } from "./scoring";
-import { scriptedReply, openingLine, rephraseWithAI } from "@/lib/patientEngine";
+import { scriptedReply, openingLine, rephraseWithAI, aiPatientReply, type ChatTurn } from "@/lib/patientEngine";
 import type { EvidenceResult, InterpretationGradeResult, ReasoningPlanSubmission, DebriefResult } from "./types";
 
 export async function startInterview(caseId: string): Promise<{ text: string }> {
@@ -16,14 +16,21 @@ export async function askPatient(
   caseId: string,
   question: string,
   askedTopicIds: string[],
-): Promise<{ text: string; topicId: string | null }> {
+  history: ChatTurn[] = [],
+): Promise<{ text: string; topicId: string | null; usedAI: boolean }> {
   const caseFile = getCaseFile(caseId);
   if (!caseFile) throw new Error("Unknown case.");
   const trimmed = question.trim().slice(0, 300);
-  if (!trimmed) return { text: "", topicId: null };
+  if (!trimmed) return { text: "", topicId: null, usedAI: false };
+
+  const ai = await aiPatientReply(caseFile, history, trimmed);
+  if (ai.usedAI && ai.text) {
+    return { text: ai.text, topicId: null, usedAI: true };
+  }
+
   const { topicId, text } = scriptedReply(caseFile, trimmed, new Set(askedTopicIds));
   const finalText = await rephraseWithAI(text, caseFile.patient.name);
-  return { text: finalText, topicId };
+  return { text: finalText, topicId, usedAI: false };
 }
 
 export async function orderEvidence(caseId: string, itemIds: string[]): Promise<EvidenceResult[]> {

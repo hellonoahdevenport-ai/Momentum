@@ -78,6 +78,13 @@ export const nursingSampleCase: CaseFile = {
         "It's a sharp pain right at the incision, probably a 6 out of 10, and it gets worse if I breathe deep or try to sit up.",
     },
     {
+      id: "pain-relief",
+      category: "Pain",
+      triggerKeywords: ["makes it better", "makes it worse", "what helps", "relieve", "ease", "better when", "worse when", "medication help"],
+      factText:
+        "Staying still helps some, and they gave me something for the pain a bit ago that's taken the edge off — but any deep breath or moving still makes it sharp again.",
+    },
+    {
       id: "nausea",
       category: "GI",
       triggerKeywords: ["nausea", "sick", "vomit", "stomach", "appetite"],

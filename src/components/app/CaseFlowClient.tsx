@@ -26,17 +26,29 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
   const [stageIndex, setStageIndex] = useState(0);
   const [furthest, setFurthest] = useState(0);
   const stage = stages[stageIndex].key;
+  const evidenceStageIndex = stages.findIndex((s) => s.key === "evidence");
+  const reasoningStageIndex = stages.findIndex((s) => s.key === "reasoning");
+
+  // --- problem list & differential ("Momentum learning") ---
+  const [listsOpen, setListsOpen] = useState(false);
+  const [problemItems, setProblemItems] = useState<string[]>([]);
+  const [differentialItems, setDifferentialItems] = useState<string[]>([]);
+  const [problemDraft, setProblemDraft] = useState("");
+  const [differentialDraft, setDifferentialDraft] = useState("");
+  const listsLocked = reasoningStageIndex >= 0 && stageIndex >= reasoningStageIndex;
 
   // --- interview ---
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [chatBusy, setChatBusy] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [askedTopicIds, setAskedTopicIds] = useState<string[]>([]);
+  const [aiLiveThisCase, setAiLiveThisCase] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   // --- evidence ---
   const [selected, setSelected] = useState<string[]>([]);
   const [results, setResults] = useState<Record<string, EvidenceResult | "pending" | undefined>>({});
+  const [marks, setMarks] = useState<Record<string, "normal" | "abnormal">>({});
 
   // --- interpretation ---
   const [answers, setAnswers] = useState<Record<string, number | number[] | string[]>>({});
@@ -102,8 +114,9 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
     setTurns((t) => [...t, { role: "you", text: q }]);
     setChatBusy(true);
     try {
-      const { text, topicId } = await askPatient(caseId, q, askedTopicIds);
+      const { text, topicId, usedAI } = await askPatient(caseId, q, askedTopicIds, turns);
       if (topicId) setAskedTopicIds((ids) => (ids.includes(topicId) ? ids : [...ids, topicId]));
+      if (usedAI) setAiLiveThisCase(true);
       setTurns((t) => [...t, { role: "patient", text }]);
     } catch {
       setErrorMsg("Couldn’t reach the patient. Try again.");
@@ -253,6 +266,10 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
         </div>
         <h1 className="mt-2.5 text-[21px] font-bold text-foreground">{initial.patient.name}</h1>
         <p className="text-sm text-foreground-dim">{initial.patient.summary}</p>
+        <p className="mt-1 text-sm leading-snug text-foreground">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-foreground-dim">Chief concern </span>
+          {initial.presentingIssue}
+        </p>
         <div className="font-data mt-2 flex flex-wrap gap-x-3.5 gap-y-1 text-xs">
           {initial.snapshotFacts.map((f) => (
             <span key={f.label}>
@@ -261,6 +278,58 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
             </span>
           ))}
         </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {stage === "interview" && (
+            <Badge tone={aiLiveThisCase ? "good" : "neutral"}>
+              {aiLiveThisCase ? "AI-powered dialogue" : "Scripted demo dialogue"}
+            </Badge>
+          )}
+          {stageIndex >= evidenceStageIndex && (
+            <button
+              type="button"
+              onClick={() => setListsOpen((v) => !v)}
+              className="focus-ring rounded-full border border-border px-3 py-1 text-xs font-bold text-foreground-dim hover:text-foreground"
+            >
+              {listsOpen ? "Hide" : "Show"} problem list &amp; differential
+              {(problemItems.length > 0 || differentialItems.length > 0) && ` (${problemItems.length + differentialItems.length})`}
+            </button>
+          )}
+        </div>
+        {listsOpen && stageIndex >= evidenceStageIndex && (
+          <div className="mt-3 grid gap-3 rounded-2xl border border-border bg-surface-2 p-4 sm:grid-cols-2">
+            <ListEditor
+              title="Problem list"
+              items={problemItems}
+              draft={problemDraft}
+              onDraftChange={setProblemDraft}
+              onAdd={() => {
+                if (!problemDraft.trim() || listsLocked) return;
+                setProblemItems((items) => [...items, problemDraft.trim()]);
+                setProblemDraft("");
+              }}
+              onRemove={(i) => setProblemItems((items) => items.filter((_, idx) => idx !== i))}
+              locked={listsLocked}
+            />
+            <ListEditor
+              title="Differential"
+              items={differentialItems}
+              draft={differentialDraft}
+              onDraftChange={setDifferentialDraft}
+              onAdd={() => {
+                if (!differentialDraft.trim() || listsLocked) return;
+                setDifferentialItems((items) => [...items, differentialDraft.trim()]);
+                setDifferentialDraft("");
+              }}
+              onRemove={(i) => setDifferentialItems((items) => items.filter((_, idx) => idx !== i))}
+              locked={listsLocked}
+            />
+            <p className="col-span-full text-[11px] text-foreground-dim">
+              {listsLocked
+                ? "Locked once you reach Reasoning — this is your working list from the interview and evidence stages."
+                : "Your own running notes as you go. Not graded — a scratchpad for momentum, not a scored answer."}
+            </p>
+          </div>
+        )}
         <div className="scrollbar-thin mt-3 flex gap-1.5 overflow-x-auto">
           {stages.map((s, i) => (
             <button
@@ -385,23 +454,49 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
                           {item.costNote === "higher cost" && <Badge tone="coral">Higher cost</Badge>}
                         </div>
                         {result === "pending" && <div className="font-data text-xs text-foreground-dim">pending&hellip;</div>}
-                        {result && result !== "pending" && (
-                          <div className="mt-1 text-xs leading-relaxed">
-                            <span
-                              className={
-                                result.resultFlag === "critical"
-                                  ? "font-bold text-bad"
-                                  : result.resultFlag === "abnormal"
-                                    ? "font-semibold text-warn"
-                                    : "text-foreground-dim"
-                              }
-                            >
-                              {result.resultText}
-                            </span>
-                            {result.referenceRange && <span className="text-foreground-dim"> (ref: {result.referenceRange})</span>}
-                            <div className="mt-0.5 text-foreground-dim">{result.teachingNote}</div>
-                          </div>
-                        )}
+                        {result && result !== "pending" && (() => {
+                          const mark = marks[item.id];
+                          const actuallyAbnormal = result.resultFlag !== "normal";
+                          const markCorrect = mark ? (mark === "abnormal") === actuallyAbnormal : false;
+                          return (
+                            <div className="mt-1 text-xs leading-relaxed">
+                              <span className={mark ? (result.resultFlag === "critical" ? "font-bold text-bad" : result.resultFlag === "abnormal" ? "font-semibold text-warn" : "text-foreground") : "text-foreground"}>
+                                {result.resultText}
+                              </span>
+                              {result.referenceRange && <span className="text-foreground-dim"> (ref: {result.referenceRange})</span>}
+                              {!mark ? (
+                                <div className="mt-1.5 flex gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      setMarks((m) => ({ ...m, [item.id]: "normal" }));
+                                    }}
+                                    className="focus-ring rounded-md border border-border px-2 py-1 text-[11px] font-bold text-foreground-dim hover:border-border-strong"
+                                  >
+                                    Mark normal
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      setMarks((m) => ({ ...m, [item.id]: "abnormal" }));
+                                    }}
+                                    className="focus-ring rounded-md border border-border px-2 py-1 text-[11px] font-bold text-foreground-dim hover:border-border-strong"
+                                  >
+                                    Mark abnormal
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className={`mt-1 font-semibold ${markCorrect ? "text-good" : "text-bad"}`}>
+                                  {markCorrect ? "Correct — " : "Not quite — "}
+                                  this is {actuallyAbnormal ? "abnormal" : "normal"}.
+                                </div>
+                              )}
+                              <div className="mt-0.5 text-foreground-dim">{result.teachingNote}</div>
+                            </div>
+                          );
+                        })()}
                       </label>
                     </div>
                   );
@@ -776,6 +871,62 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
               {finished ? "Saved — redirecting…" : "Finish & save progress"}
             </button>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ListEditor({
+  title,
+  items,
+  draft,
+  onDraftChange,
+  onAdd,
+  onRemove,
+  locked,
+}: {
+  title: string;
+  items: string[];
+  draft: string;
+  onDraftChange: (v: string) => void;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+  locked: boolean;
+}) {
+  return (
+    <div>
+      <div className="text-[11px] font-bold uppercase tracking-wider text-foreground-dim">{title}</div>
+      <ul className="mt-1.5 flex flex-col gap-1">
+        {items.map((item, i) => (
+          <li key={i} className="flex items-center justify-between gap-2 rounded-lg bg-surface px-2.5 py-1.5 text-sm text-foreground">
+            {item}
+            {!locked && (
+              <button type="button" onClick={() => onRemove(i)} className="focus-ring text-xs font-bold text-foreground-dim hover:text-bad" aria-label={`Remove ${item}`}>
+                &#10005;
+              </button>
+            )}
+          </li>
+        ))}
+        {items.length === 0 && <li className="text-xs text-foreground-dim">Nothing added yet.</li>}
+      </ul>
+      {!locked && (
+        <div className="mt-2 flex gap-1.5">
+          <input
+            value={draft}
+            onChange={(e) => onDraftChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                onAdd();
+              }
+            }}
+            placeholder="Add an item…"
+            className="focus-ring flex-1 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm text-foreground outline-none"
+          />
+          <button type="button" onClick={onAdd} className="focus-ring rounded-lg bg-accent px-2.5 py-1.5 text-xs font-bold text-white">
+            Add
+          </button>
         </div>
       )}
     </div>

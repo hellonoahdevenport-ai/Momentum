@@ -84,6 +84,13 @@ export const mayaChenCase: CaseFile = {
         "I get short of breath with stairs or if I try to jog, which is new for me. I've also felt a little lightheaded a couple of times when I stand up quickly.",
     },
     {
+      id: "alleviating-aggravating",
+      category: "HPI",
+      triggerKeywords: ["makes it better", "makes it worse", "what helps", "relieve", "ease", "better when", "worse when", "rest help"],
+      factText:
+        "Resting helps a little, but even just a short walk brings the tiredness and breathlessness right back — nothing really makes it go away completely.",
+    },
+    {
       id: "diet",
       category: "Social",
       triggerKeywords: ["diet", "eat", "food", "vegetarian", "vegan", "meat", "nutrition"],
