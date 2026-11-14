@@ -1,0 +1,428 @@
+import type { CaseFile } from "./types";
+
+/**
+ * Fictional case for educational simulation only. Not a substitute for
+ * supervision, local policy, clinical judgment, or professional care.
+ * Content status: needs_clinical_review — not yet checked by a licensed
+ * clinician. Do not present as validated. This case is written to be
+ * non-graphic and non-crisis: the safety screen is explicitly negative.
+ */
+export const jordanLeeCase: CaseFile = {
+  meta: {
+    id: "jordan-lee-anxiety-depression-screening",
+    version: "0.1.0",
+    title: "Jordan Lee: Low Mood and Worry at a Routine Visit",
+    trackKey: "medicine",
+    unitKey: "behavioral",
+    author: "Momentum content team (fictional case; educational use only)",
+    reviewers: [],
+    reviewStatus: "needs_clinical_review",
+    reviewDate: null,
+    nextReviewDate: null,
+    sources: [
+      {
+        title: "Depression and anxiety screening in primary care",
+        owner: "UpToDate",
+        url: "https://www.uptodate.com/",
+        versionOrDate: "Specific topic citation pending verification at clinical review",
+      },
+      {
+        title: "Generalized anxiety disorder and depression — overview",
+        owner: "StatPearls / NCBI Bookshelf",
+        url: "https://www.ncbi.nlm.nih.gov/books/",
+        versionOrDate: "Specific chapter citation pending verification at clinical review",
+      },
+    ],
+    learningObjectives: [
+      "Take a focused mood, sleep, and substance-use history in a routine primary-care visit",
+      "Conduct and interpret a direct, non-alarming safety screen for suicidal ideation",
+      "Order a cost-aware workup to exclude a medical mimic of mood symptoms before assuming a primary psychiatric cause",
+      "Build an initial primary-care management plan for a mild-to-moderate depressive/anxiety presentation",
+    ],
+    targetLevel: "Foundations / early clinical skills",
+    estimatedMinutes: 18,
+    contentWarning: "Discusses mood symptoms and includes a direct safety screening question; the screen is explicitly negative and no self-harm content is depicted.",
+  },
+  conclusionLabel: "Diagnosis",
+  actionLabel: "Treatment plan",
+  patient: {
+    name: "Jordan Lee",
+    age: 29,
+    pronouns: "they/them",
+    summary: "29-year-old office worker, here for a routine primary-care visit",
+  },
+  presentingIssue: "About six weeks of low mood, trouble sleeping, and increased worry, affecting work.",
+  snapshotFacts: [
+    { label: "BP", value: "118/76 mmHg" },
+    { label: "HR", value: "78 bpm" },
+    { label: "RR", value: "14/min" },
+    { label: "Temp", value: "98.2°F" },
+    { label: "Weight", value: "Stable, no significant change in 6 months" },
+  ],
+  initialAssessment:
+    "Jordan appears tired but is alert, cooperative, and well-groomed. Speech is normal in rate and volume. Affect is mildly flat but reactive, and they make good eye contact. No psychomotor agitation or retardation is noted.",
+  examFindings: {
+    head: "Normocephalic. No thyromegaly. Eyes without exophthalmos.",
+    chest: "Heart rate regular, no murmur. Lungs clear.",
+    abdomen: "Soft, non-tender, no masses.",
+    arms: "No tremor. No track marks or recent injury.",
+    legs: "No edema. Normal gait.",
+    skin: "Warm, dry, normal turgor. No rashes.",
+  },
+  interviewTopics: [
+    {
+      id: "opening",
+      category: "HPI",
+      triggerKeywords: [],
+      openingLine: true,
+      factText:
+        "I've just been feeling kind of down for a few weeks now, and I'm not sleeping great, and I feel like I'm worrying about everything. I figured I should finally mention it.",
+    },
+    {
+      id: "onset-course",
+      category: "HPI",
+      triggerKeywords: ["when", "start", "began", "onset", "how long", "course", "weeks"],
+      factText:
+        "It's been about six weeks, I'd say. It started around when I switched teams at work, and it hasn't really let up since — if anything it's been a little worse the last couple weeks.",
+    },
+    {
+      id: "mood-detail",
+      category: "HPI",
+      triggerKeywords: ["mood", "down", "sad", "depressed", "interest", "enjoy", "motivation", "energy"],
+      factText:
+        "Most days I just feel kind of flat and low. I used to look forward to going climbing on weekends, but lately I haven't really felt like it, even though I know I'd probably feel better if I went.",
+    },
+    {
+      id: "anxiety-detail",
+      category: "HPI",
+      triggerKeywords: ["worry", "anxious", "anxiety", "nervous", "racing thoughts", "on edge"],
+      factText:
+        "I worry about stuff that I know probably isn't that big a deal — like whether I sent an email wrong, or whether people are annoyed with me. It's hard to turn my brain off at night.",
+    },
+    {
+      id: "alleviating-aggravating",
+      category: "HPI",
+      triggerKeywords: ["makes it better", "makes it worse", "what helps", "relieve", "ease", "better when", "worse when"],
+      factText:
+        "Being busy at work almost makes it worse, honestly — there's more time to worry. Talking to my partner helps a little in the moment, but the worry usually comes back pretty quick.",
+    },
+    {
+      id: "sleep",
+      category: "ROS",
+      triggerKeywords: ["sleep", "insomnia", "wake", "tired", "rest", "night"],
+      factText:
+        "I have trouble falling asleep most nights, and I wake up around 4am and just lie there thinking. I'm tired basically all day because of it.",
+    },
+    {
+      id: "safety-screen",
+      category: "Safety",
+      triggerKeywords: ["suicide", "suicidal", "self-harm", "harm yourself", "hurt yourself", "safe", "safety", "thoughts of death", "plan to hurt"],
+      factText:
+        "No, nothing like that at all — I haven't had any thoughts of hurting myself or not wanting to be here. I just feel low and tired, honestly, nothing more than that.",
+    },
+    {
+      id: "substance-use",
+      category: "Social",
+      triggerKeywords: ["alcohol", "drink", "drug", "substance", "caffeine", "smoke", "marijuana"],
+      factText:
+        "I have a couple drinks on the weekend with friends, nothing during the week. I don't use any other substances. I probably drink more coffee than I should, though — three or four cups most days now.",
+    },
+    {
+      id: "stressors",
+      category: "Social",
+      triggerKeywords: ["stress", "job", "work", "relationship", "life", "change"],
+      factText:
+        "Work's been the big thing — I moved to a new team about two months ago and it's been a steep learning curve, plus my manager is pretty demanding. Otherwise things at home are fine.",
+    },
+    {
+      id: "pmh",
+      category: "PMH",
+      triggerKeywords: ["history", "medical history", "conditions", "thyroid", "depression before", "anxiety before"],
+      factText:
+        "I've never been diagnosed with depression or anxiety before, and I don't have any other medical conditions that I know of. This is really the first time it's felt like this.",
+    },
+    {
+      id: "meds",
+      category: "Medications",
+      triggerKeywords: ["medication", "meds", "supplement", "pills", "taking"],
+      factText: "I don't take any regular medications, just a multivitamin sometimes.",
+    },
+    {
+      id: "family",
+      category: "Family history",
+      triggerKeywords: ["family", "mother", "father", "sibling", "genetic", "hereditary"],
+      factText: "My mom has dealt with anxiety for a long time, actually — she's on medication for it and does okay.",
+    },
+  ],
+  evidenceCategories: ["Screening tools", "Labs", "Bedside"],
+  evidenceCatalog: [
+    {
+      id: "mood-screener",
+      name: "Standardized mood questionnaire",
+      category: "Screening tools",
+      resultText: "Score in the mild-to-moderate depression range, with several items endorsed for low mood, poor sleep, and low energy",
+      referenceRange: "Lower scores reflect fewer or milder symptoms",
+      resultFlag: "abnormal",
+      significant: true,
+      teachingNote: "A brief, structured screening tool gives a reproducible baseline severity and a number to track over time — more useful than relying on impression alone.",
+      invasive: false,
+      costNote: "low cost",
+    },
+    {
+      id: "anxiety-screener",
+      name: "Standardized anxiety questionnaire",
+      category: "Screening tools",
+      resultText: "Score in the mild-to-moderate anxiety range, with excessive worry and trouble relaxing endorsed most strongly",
+      referenceRange: "Lower scores reflect fewer or milder symptoms",
+      resultFlag: "abnormal",
+      significant: true,
+      teachingNote: "Depression and anxiety symptoms frequently overlap and co-occur — screening for both avoids missing a mixed presentation.",
+      invasive: false,
+      costNote: "low cost",
+    },
+    {
+      id: "safety-screen-item",
+      name: "Direct safety screening question",
+      category: "Screening tools",
+      resultText: "Negative — denies any thoughts of suicide, self-harm, or not wanting to be alive, no plan, no intent",
+      referenceRange: null,
+      resultFlag: "normal",
+      significant: true,
+      teachingNote: "Asking directly and plainly, every time mood is a concern, is the standard of care — a negative screen is genuinely reassuring and should be documented clearly.",
+      invasive: false,
+      costNote: "low cost",
+    },
+    {
+      id: "tsh",
+      name: "TSH",
+      category: "Labs",
+      resultText: "Normal",
+      referenceRange: "0.4–4.0 mIU/L",
+      resultFlag: "normal",
+      significant: true,
+      teachingNote: "Hypothyroidism can mimic depression closely — a normal TSH meaningfully helps exclude it as the driver of these symptoms.",
+      invasive: false,
+      costNote: "low cost",
+    },
+    {
+      id: "cbc",
+      name: "CBC",
+      category: "Labs",
+      resultText: "Normal",
+      referenceRange: null,
+      resultFlag: "normal",
+      significant: false,
+      teachingNote: "Reasonable baseline given the fatigue, but a normal result is low-yield on its own here — it mainly helps exclude anemia as a separate contributor to the tiredness.",
+      invasive: false,
+      costNote: "low cost",
+    },
+    {
+      id: "b12-vitd",
+      name: "Vitamin B12 and vitamin D",
+      category: "Labs",
+      resultText: "Both within normal range",
+      referenceRange: null,
+      resultFlag: "normal",
+      significant: false,
+      teachingNote: "Reasonable to check given fatigue and low mood, but normal results here don't particularly change the management plan.",
+      invasive: false,
+      costNote: "moderate cost",
+    },
+    {
+      id: "substance-history-review",
+      name: "Focused substance and caffeine use review",
+      category: "Bedside",
+      resultText: "Moderate caffeine intake, light weekend alcohol use, no other substance use reported",
+      referenceRange: null,
+      resultFlag: "normal",
+      significant: true,
+      teachingNote: "High caffeine intake can worsen anxiety and disrupt sleep — worth addressing directly as part of a non-medication first step.",
+      invasive: false,
+      costNote: "low cost",
+    },
+  ],
+  stages: [
+    { key: "brief", label: "Brief" },
+    { key: "interview", label: "Interview" },
+    { key: "evidence", label: "Evidence" },
+    { key: "interpretation", label: "Interpretation" },
+    { key: "reasoning", label: "Reasoning" },
+    { key: "plan", label: "Plan" },
+    { key: "event", label: "Follow-up" },
+    { key: "debrief", label: "Debrief" },
+  ],
+  interpretationQuestions: [
+    {
+      id: "interp-1",
+      type: "mcq",
+      display: "dropdown",
+      prompt: "The screening results and history together are most consistent with:",
+      options: [
+        "A mild-to-moderate depressive and anxiety presentation appropriate for primary-care management",
+        "Hypothyroidism-related mood symptoms",
+        "A severe depressive episode requiring immediate psychiatric hospitalization",
+        "Substance-induced mood disorder from alcohol use",
+      ],
+      correctIndex: 0,
+      rationale:
+        "The screening scores are mild-to-moderate, the safety screen is negative, TSH is normal, and alcohol use is light — this points to a primary mood/anxiety presentation manageable in primary care, not a thyroid cause, a severe/urgent presentation, or a substance-induced picture.",
+    },
+    {
+      id: "interp-2",
+      type: "multi-select",
+      prompt: "Which findings support starting management in primary care rather than an urgent psychiatric referral? (select all that apply)",
+      options: [
+        "Negative safety screen",
+        "Mild-to-moderate screening scores",
+        "Normal TSH",
+        "Family history of anxiety",
+        "Heavy daily alcohol use",
+      ],
+      correctIndices: [0, 1, 2],
+      partialCredit: true,
+      rationale:
+        "A negative safety screen and mild-to-moderate severity support outpatient primary-care management. A normal TSH helps exclude a medical mimic. Family history is relevant context but doesn't by itself determine urgency, and there is no heavy daily alcohol use in this case.",
+    },
+  ],
+  quizQuestions: [
+    {
+      id: "quiz-1",
+      type: "mcq",
+      display: "radio",
+      prompt: "Why check a TSH in a patient presenting with new low mood and fatigue?",
+      options: [
+        "Hypothyroidism can closely mimic depression and is easy to screen for",
+        "It is required before prescribing any medication",
+        "It directly measures anxiety severity",
+        "It replaces the need for a safety screen",
+      ],
+      correctIndex: 0,
+      rationale: "Thyroid dysfunction is a classic, treatable medical mimic of mood symptoms and is cheap and easy to screen for.",
+    },
+    {
+      id: "quiz-2",
+      type: "mcq",
+      display: "radio",
+      prompt: "What is the recommended approach to asking about suicidal thoughts in a primary-care visit for low mood?",
+      options: [
+        "Ask directly and plainly, every time mood is a concern",
+        "Avoid asking unless the patient brings it up first",
+        "Only ask if screening scores are severe",
+        "Delegate the question to a specialist only",
+      ],
+      correctIndex: 0,
+      rationale: "Direct, plain, routine safety screening is the standard of care whenever mood is a concern, regardless of severity.",
+    },
+    {
+      id: "quiz-3",
+      type: "mcq",
+      display: "radio",
+      prompt: "A standardized mood or anxiety questionnaire is most useful for:",
+      options: [
+        "Establishing a reproducible baseline severity to track over time",
+        "Diagnosing a medical cause of the symptoms",
+        "Replacing the need for a clinical history",
+        "Determining the exact medication dose needed",
+      ],
+      correctIndex: 0,
+      rationale: "Screening tools give a structured, trackable severity score; they support, but don't replace, a full history and clinical judgment.",
+    },
+  ],
+  conclusionOptions: [
+    "Mild-to-moderate depressive and anxiety symptoms, appropriate for primary-care management",
+    "Hypothyroidism causing secondary mood symptoms",
+    "Severe major depressive episode requiring urgent psychiatric hospitalization",
+    "Normal stress reaction not warranting any follow-up",
+  ],
+  correctConclusionIndex: 0,
+  differentialQuestion: {
+    id: "differential-1",
+    type: "multi-select",
+    prompt: "Before the screening and labs came back, which of these were reasonable alternative explanations to keep in mind? (select all that apply)",
+    options: [
+      "Hypothyroidism",
+      "Substance-related mood effects",
+      "Normal adjustment to a stressful change",
+      "A primary depressive/anxiety disorder",
+      "Early signs of a manic episode",
+    ],
+    correctIndices: [0, 1, 2, 3],
+    partialCredit: true,
+    rationale:
+      "Each of these was a reasonable possibility to consider before targeted screening and labs narrowed things down. There is no history here suggestive of mania, so that one doesn't belong on this particular differential.",
+  },
+  confidenceQuestion: {
+    id: "confidence-1",
+    type: "confidence",
+    prompt: "Before seeing the debrief, how confident are you in this diagnosis?",
+  },
+  changeMyMindQuestion: {
+    id: "change-mind-1",
+    type: "short-text",
+    prompt: "What single finding, if present, would most change your approach to Jordan's case?",
+    rubricKeywords: [
+      "suicidal",
+      "safety screen positive",
+      "plan",
+      "intent",
+      "tsh abnormal",
+      "thyroid",
+      "heavy alcohol",
+      "substance",
+      "psychotic",
+      "mania",
+      "severe",
+      "urgent",
+    ],
+    sampleAnswer:
+      "If the safety screen had come back positive with any suicidal ideation, plan, or intent, this would immediately become an urgent safety issue requiring a different, more urgent response. Similarly, an abnormal TSH would redirect the workup toward a thyroid cause, or heavy daily alcohol use would need to be addressed before treating mood symptoms as primary.",
+    rationale: "The safety screen result is the single most important finding that could change the urgency of the entire visit.",
+  },
+  planPrompt: {
+    label: "Treatment plan",
+    placeholder: "What would you recommend next for Jordan?",
+    safetyChecklist: [
+      "Confirm and document the negative safety screen clearly",
+      "Discuss first-line options: therapy (e.g., CBT) and/or medication, per patient preference",
+      "Address sleep hygiene and caffeine intake as a non-medication first step",
+      "Arrange a follow-up visit to reassess symptoms and screening scores",
+      "Give clear guidance on when and how to seek urgent help if symptoms worsen",
+    ],
+    rubricKeywords: [
+      "therapy",
+      "cbt",
+      "counseling",
+      "follow-up",
+      "recheck",
+      "sleep hygiene",
+      "caffeine",
+      "safety plan",
+      "medication",
+      "ssri",
+      "lifestyle",
+      "reassess",
+    ],
+    sampleAnswer:
+      "Discuss first-line options with Jordan, including referral to therapy such as cognitive behavioral therapy, and consider a medication discussion if they prefer that route or symptoms don't improve with therapy alone. Recommend reducing caffeine intake and improving sleep hygiene as an immediate, low-risk step. Clearly document the negative safety screen and give Jordan specific guidance on what to do and who to contact if mood worsens or safety concerns arise before the next visit. Arrange a follow-up visit in a few weeks to recheck screening scores and response. This is general reasoning for a learning exercise, not patient-specific treatment guidance.",
+  },
+  unfoldingEvent: null,
+  debrief: {
+    correctConclusionLabel: "Diagnosis",
+    correctConclusion: "Mild-to-moderate depressive and anxiety symptoms, appropriate for primary-care management",
+    conclusionExplanation:
+      "Jordan's mild-to-moderate screening scores, clearly negative safety screen, normal TSH, and a plausible situational trigger (a stressful job change) together point to a primary mood/anxiety presentation that primary care is well-equipped to begin managing, rather than a thyroid cause, a severe or urgent presentation, or a substance-driven picture.",
+    keyConsiderations: [
+      "A direct, plainly worded safety screen should be asked of every patient with mood symptoms, not just those who seem severely affected",
+      "Hypothyroidism is a classic, cheap-to-exclude medical mimic of depression and should be checked before assuming a purely psychiatric cause",
+      "Screening tools give a reproducible baseline to track response over time, but don't replace a full history",
+      "Caffeine and sleep habits are a reasonable, low-risk first target before or alongside other treatment",
+    ],
+    recommendedAction:
+      "Document the negative safety screen, discuss therapy and/or medication options per preference, address sleep and caffeine, and arrange follow-up to recheck symptoms.",
+    goodOutcome:
+      "With therapy, improved sleep habits, and regular follow-up, Jordan's mood and anxiety symptoms gradually improve over the following months, with screening scores trending down.",
+    badOutcome:
+      "Without a clear plan or follow-up, Jordan's symptoms may persist or worsen, and a later safety concern could be missed if there's no scheduled recheck.",
+    nextLearningGoalHint: "Next, try a case where the safety screen is positive, to practice recognizing when a visit needs to become urgent.",
+  },
+};

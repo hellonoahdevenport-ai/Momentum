@@ -1,0 +1,397 @@
+import type { CaseFile } from "./types";
+
+/**
+ * Fictional case for educational simulation only. Not a substitute for
+ * supervision, local policy, clinical judgment, or professional care.
+ * Content status: needs_clinical_review — not yet checked by a licensed
+ * clinician. Do not present as validated.
+ */
+export const walterBooneCase: CaseFile = {
+  meta: {
+    id: "walter-boone-ischemic-stroke",
+    version: "0.1.0",
+    title: "Walter Boone: Sudden Weakness and Slurred Speech",
+    trackKey: "medicine",
+    unitKey: "nervous",
+    author: "Momentum content team (fictional case; educational use only)",
+    reviewers: [],
+    reviewStatus: "needs_clinical_review",
+    reviewDate: null,
+    nextReviewDate: null,
+    sources: [
+      {
+        title: "Ischemic stroke — overview and acute management",
+        owner: "UpToDate",
+        url: "https://www.uptodate.com/",
+        versionOrDate: "Specific topic citation pending verification at clinical review",
+      },
+      {
+        title: "Stroke (Ischemic)",
+        owner: "StatPearls / NCBI Bookshelf",
+        url: "https://www.ncbi.nlm.nih.gov/books/",
+        versionOrDate: "Specific chapter citation pending verification at clinical review",
+      },
+    ],
+    learningObjectives: [
+      "Recognize FAST-positive findings and act on sudden focal neurologic deficits as a time-critical presentation",
+      "Establish and prioritize last-known-well time as the key eligibility factor for time-sensitive stroke treatment",
+      "Use a non-contrast head CT as the critical safety gate before considering clot-busting treatment",
+      "Distinguish ischemic stroke from common stroke mimics such as hypoglycemia",
+    ],
+    targetLevel: "Foundations / Step 1-aligned, early clinical skills",
+    estimatedMinutes: 20,
+    contentWarning: null,
+  },
+  conclusionLabel: "Diagnosis",
+  actionLabel: "Treatment plan",
+  patient: {
+    name: "Walter Boone",
+    age: 71,
+    pronouns: "he/him",
+    summary: "71-year-old man, history of hypertension and atrial fibrillation",
+  },
+  presentingIssue: "Sudden right-sided weakness and slurred speech, noticed by his wife about 50 minutes ago.",
+  snapshotFacts: [
+    { label: "BP", value: "168/94 mmHg" },
+    { label: "HR", value: "88 bpm, irregular" },
+    { label: "RR", value: "18/min" },
+    { label: "Temp", value: "98.6°F" },
+    { label: "SpO2", value: "97% room air" },
+    { label: "Glucose", value: "pending — point-of-care check ordered" },
+  ],
+  initialAssessment:
+    "Walter is awake but has notably slurred, slow speech. His right arm drifts downward when he tries to hold both arms up, and the right side of his face droops slightly when he smiles. His wife says he was completely normal when she last saw him about 50 minutes ago, before he went to get the mail.",
+  examFindings: {
+    head: "Right-sided facial droop, most notable at the corner of the mouth. Pupils equal and reactive.",
+    chest: "Irregularly irregular heart rhythm, no murmur. Lungs clear.",
+    abdomen: "Soft, non-tender, non-distended.",
+    arms: "Right arm drifts down within 10 seconds on arm-hold testing; grip strength reduced on the right compared to the left.",
+    legs: "Mild right leg weakness on resistance testing; left leg strength normal.",
+    skin: "Warm, dry, normal color. No diaphoresis.",
+  },
+  interviewTopics: [
+    {
+      id: "opening",
+      category: "HPI",
+      triggerKeywords: [],
+      openingLine: true,
+      factText:
+        "(spoken slowly and slightly slurred) My — my arm feels weak, and I'm having trouble getting the words out right. My wife noticed it first.",
+    },
+    {
+      id: "onset-time",
+      category: "HPI",
+      triggerKeywords: ["when", "start", "began", "onset", "how long", "last normal", "last seen", "last known well"],
+      factText:
+        "(wife answering) He was completely fine when he left to get the mail — that was about fifty minutes ago. When he came back in, his speech sounded off and his face looked funny on one side.",
+    },
+    {
+      id: "alleviating-aggravating",
+      category: "HPI",
+      triggerKeywords: ["makes it better", "makes it worse", "what helps", "relieve", "ease", "better when", "worse when"],
+      factText:
+        "(wife answering) Nothing seems to make it better or worse — it's been about the same since it started, maybe just a touch worse if anything.",
+    },
+    {
+      id: "headache-vision",
+      category: "ROS",
+      triggerKeywords: ["headache", "head pain", "vision", "blurry", "double vision", "see"],
+      factText: "(shaking head slowly) No bad headache. Vision's a little blurry on this side, but no real pain.",
+    },
+    {
+      id: "pmh",
+      category: "PMH",
+      triggerKeywords: ["history", "medical history", "conditions", "blood pressure", "afib", "atrial fibrillation", "stroke before"],
+      factText:
+        "(wife answering) He's got high blood pressure and that irregular heartbeat thing — atrial fibrillation, the doctor called it. No stroke before this, as far as we know.",
+    },
+    {
+      id: "meds",
+      category: "Medications",
+      triggerKeywords: ["medication", "meds", "blood thinner", "anticoagulant", "aspirin", "warfarin", "eliquis", "pills", "taking"],
+      factText:
+        "(wife answering) He's supposed to take a blood thinner for the heart rhythm thing, but honestly I think he's been forgetting it some days — he's not great about his pills.",
+    },
+    {
+      id: "allergies",
+      category: "Allergies",
+      triggerKeywords: ["allergy", "allergic", "allergies"],
+      factText: "(wife answering) No allergies that I know of.",
+    },
+    {
+      id: "diabetes",
+      category: "PMH",
+      triggerKeywords: ["diabetes", "diabetic", "sugar", "glucose history", "insulin"],
+      factText: "(wife answering) No, he's never had diabetes or blood sugar problems.",
+    },
+    {
+      id: "social",
+      category: "Social",
+      triggerKeywords: ["smoke", "smoking", "alcohol", "drink", "lives", "alone", "support"],
+      factText:
+        "(wife answering) He quit smoking years ago. We live together, and I'm here with him now, so he's got support at home.",
+    },
+  ],
+  evidenceCategories: ["Bedside", "Labs", "Imaging"],
+  evidenceCatalog: [
+    {
+      id: "fingerstick-glucose",
+      name: "Point-of-care fingerstick glucose",
+      category: "Bedside",
+      resultText: "94 mg/dL",
+      referenceRange: "70–100 mg/dL (fasting)",
+      resultFlag: "normal",
+      significant: true,
+      teachingNote: "A fast, cheap, mandatory check — hypoglycemia is a classic and completely reversible stroke mimic that must be excluded immediately.",
+      invasive: false,
+      costNote: "low cost",
+    },
+    {
+      id: "nccct",
+      name: "Non-contrast head CT",
+      category: "Imaging",
+      resultText: "No acute hemorrhage. No large established infarct yet visible, consistent with an early ischemic event.",
+      referenceRange: null,
+      resultFlag: "normal",
+      significant: true,
+      teachingNote: "The critical safety gate: this scan's only job at this stage is to rule out hemorrhage before any clot-busting treatment is considered. Early ischemic strokes often look normal on non-contrast CT in the first hours.",
+      invasive: false,
+      costNote: "higher cost",
+    },
+    {
+      id: "nihss",
+      name: "Focused neurologic exam (NIHSS-style)",
+      category: "Bedside",
+      resultText: "Right facial droop, right arm drift, mild right leg weakness, mild dysarthria — deficit pattern consistent with a left hemisphere process",
+      referenceRange: null,
+      resultFlag: "abnormal",
+      significant: true,
+      teachingNote: "A structured bedside exam quantifies the deficit, helps localize it, and gives a baseline to track whether he's improving or worsening.",
+      invasive: false,
+      costNote: "low cost",
+    },
+    {
+      id: "ecg",
+      name: "12-lead ECG",
+      category: "Bedside",
+      resultText: "Atrial fibrillation with controlled rate, no acute ischemic changes",
+      referenceRange: null,
+      resultFlag: "abnormal",
+      significant: true,
+      teachingNote: "Atrial fibrillation is a major, modifiable embolic stroke risk factor and strongly supports a cardioembolic mechanism, especially with inconsistent anticoagulant use.",
+      invasive: false,
+      costNote: "low cost",
+    },
+    {
+      id: "bmp",
+      name: "Basic metabolic panel",
+      category: "Labs",
+      resultText: "Sodium, potassium, and renal function all within normal limits",
+      referenceRange: null,
+      resultFlag: "normal",
+      significant: false,
+      teachingNote: "Checked to exclude an electrolyte disturbance as a contributing or mimicking cause and to confirm he's safe for contrast or medications if needed — normal here, but still worth doing quickly.",
+      invasive: false,
+      costNote: "low cost",
+    },
+    {
+      id: "coags",
+      name: "PT/INR and platelet count",
+      category: "Labs",
+      resultText: "INR 1.1 (subtherapeutic for his prescribed anticoagulation), platelets normal",
+      referenceRange: "Therapeutic INR on anticoagulation is typically 2.0–3.0 for atrial fibrillation",
+      resultFlag: "abnormal",
+      significant: true,
+      teachingNote: "A subtherapeutic INR fits the history of inconsistent medication use and explains why his atrial fibrillation wasn't protected against clot formation — directly relevant to both the mechanism and eligibility for treatment.",
+      invasive: false,
+      costNote: "low cost",
+    },
+    {
+      id: "ctangio",
+      name: "CT angiography of the head and neck",
+      category: "Imaging",
+      resultText: "Pending — not yet reviewed",
+      referenceRange: null,
+      resultFlag: "normal",
+      significant: false,
+      teachingNote: "Useful for identifying a large-vessel occlusion that might be eligible for additional procedural treatment, but ordering it should never delay the non-contrast CT or time-sensitive treatment decision.",
+      invasive: false,
+      costNote: "higher cost",
+    },
+  ],
+  stages: [
+    { key: "brief", label: "Brief" },
+    { key: "interview", label: "Interview" },
+    { key: "evidence", label: "Evidence" },
+    { key: "interpretation", label: "Interpretation" },
+    { key: "reasoning", label: "Reasoning" },
+    { key: "plan", label: "Plan" },
+    { key: "event", label: "Follow-up" },
+    { key: "debrief", label: "Debrief" },
+  ],
+  interpretationQuestions: [
+    {
+      id: "interp-1",
+      type: "mcq",
+      display: "dropdown",
+      prompt: "The sudden focal deficit, normal glucose, and non-hemorrhagic head CT together are most consistent with:",
+      options: [
+        "Acute ischemic stroke",
+        "Hypoglycemia",
+        "Intracerebral hemorrhage",
+        "Complex migraine",
+      ],
+      correctIndex: 0,
+      rationale:
+        "A normal glucose excludes hypoglycemia as the cause, and the non-contrast CT shows no hemorrhage — together with a sudden focal deficit, this pattern is most consistent with an acute ischemic stroke, even though early ischemic change is often not yet visible on CT.",
+    },
+    {
+      id: "interp-2",
+      type: "multi-select",
+      prompt:
+        "Which findings support treating this as a time-critical ischemic stroke and establishing last-known-well time urgently? (select all that apply)",
+      options: [
+        "Sudden onset of a focal neurologic deficit",
+        "Normal point-of-care glucose",
+        "History of atrial fibrillation with a subtherapeutic INR",
+        "Normal basic metabolic panel",
+        "No hemorrhage on non-contrast head CT",
+      ],
+      correctIndices: [0, 1, 2, 4],
+      partialCredit: true,
+      rationale:
+        "Sudden onset, a normal glucose (ruling out the classic mimic), a cardioembolic risk factor with inadequate anticoagulation, and no hemorrhage on CT all support treating this urgently as a time-critical ischemic stroke. A normal BMP is reassuring but doesn't itself point toward stroke.",
+    },
+  ],
+  quizQuestions: [
+    {
+      id: "quiz-1",
+      type: "mcq",
+      display: "radio",
+      prompt: "What is the single most important piece of history to establish early in a suspected acute stroke?",
+      options: ["Last-known-well time", "Favorite foods", "Height and weight", "Marital status"],
+      correctIndex: 0,
+      rationale: "Last-known-well time directly determines eligibility for time-sensitive treatments.",
+    },
+    {
+      id: "quiz-2",
+      type: "mcq",
+      display: "radio",
+      prompt: "Why is a non-contrast head CT obtained before considering clot-busting treatment?",
+      options: [
+        "To rule out hemorrhage, which would make clot-busting treatment dangerous",
+        "To measure the patient's blood pressure",
+        "It is not actually necessary before treatment",
+        "To check for a broken bone",
+      ],
+      correctIndex: 0,
+      rationale: "Giving a clot-busting medication to a patient with a brain hemorrhage could cause catastrophic bleeding, so hemorrhage must be excluded first.",
+    },
+    {
+      id: "quiz-3",
+      type: "mcq",
+      display: "radio",
+      prompt: "Which classic, rapidly reversible condition must be excluded at the bedside in any suspected stroke?",
+      options: ["Hypoglycemia", "Seasonal allergies", "Common cold", "Mild dehydration"],
+      correctIndex: 0,
+      rationale: "Hypoglycemia can perfectly mimic a focal neurologic deficit and is immediately correctable once identified.",
+    },
+  ],
+  conclusionOptions: [
+    "Acute ischemic stroke, likely cardioembolic given atrial fibrillation with subtherapeutic anticoagulation",
+    "Hypoglycemic episode",
+    "Intracerebral hemorrhage",
+    "Complex migraine with aura",
+  ],
+  correctConclusionIndex: 0,
+  differentialQuestion: {
+    id: "differential-1",
+    type: "multi-select",
+    prompt:
+      "Before the glucose and head CT results came back, which of these were reasonable alternative explanations to keep on the differential? (select all that apply)",
+    options: [
+      "Hypoglycemia",
+      "Intracerebral hemorrhage",
+      "Complex migraine with aura",
+      "Todd's paralysis after an unwitnessed seizure",
+      "Conversion disorder",
+    ],
+    correctIndices: [0, 1, 2, 3, 4],
+    partialCredit: true,
+    rationale:
+      "All of these can present with a sudden focal neurologic deficit and were reasonable to consider before glucose and imaging results narrowed the picture — stroke mimics are common enough that they deserve explicit consideration, not dismissal.",
+  },
+  confidenceQuestion: {
+    id: "confidence-1",
+    type: "confidence",
+    prompt: "Before seeing the debrief, how confident are you in this diagnosis?",
+  },
+  changeMyMindQuestion: {
+    id: "change-mind-1",
+    type: "short-text",
+    prompt: "What single finding, if present, would most change your diagnosis?",
+    rubricKeywords: [
+      "low glucose",
+      "hypoglycemia",
+      "hemorrhage",
+      "bleed",
+      "seizure",
+      "todd's paralysis",
+      "migraine",
+      "normal exam",
+      "resolved",
+      "witnessed seizure",
+    ],
+    sampleAnswer:
+      "If the point-of-care glucose had come back low, I'd treat this as hypoglycemia instead. If the head CT had shown a hemorrhage, the whole treatment pathway would change immediately, since clot-busting treatment would be contraindicated.",
+    rationale:
+      "Glucose and the non-contrast CT are the two fastest, highest-yield results that redirect the diagnosis and the treatment pathway entirely.",
+  },
+  planPrompt: {
+    label: "Treatment plan",
+    placeholder: "What would you recommend next for Walter?",
+    safetyChecklist: [
+      "Confirm last-known-well time as precisely as possible",
+      "Exclude hypoglycemia and hemorrhage before considering clot-busting treatment",
+      "Activate the stroke team / time-sensitive stroke pathway promptly",
+      "Monitor blood pressure and neurologic status closely",
+      "Avoid delaying imaging or treatment decisions for low-yield tests",
+    ],
+    rubricKeywords: [
+      "last known well",
+      "stroke team",
+      "thrombolysis",
+      "clot-busting",
+      "time window",
+      "blood pressure",
+      "neuro checks",
+      "anticoagulation",
+      "ct angiography",
+      "monitor",
+      "escalate",
+    ],
+    sampleAnswer:
+      "Confirm the last-known-well time precisely and activate the stroke team immediately, since he appears to be within a treatment window for time-sensitive clot-busting therapy, pending final hemorrhage exclusion. Monitor blood pressure and repeat neurologic checks frequently, and discuss the subtherapeutic anticoagulation history with the team since it informs both the likely mechanism and treatment eligibility. Consider CT angiography to assess for a large-vessel occlusion without delaying the primary treatment decision. This is general reasoning for a learning exercise, not patient-specific treatment guidance.",
+  },
+  unfoldingEvent: null,
+  debrief: {
+    correctConclusionLabel: "Diagnosis",
+    correctConclusion: "Acute ischemic stroke, likely cardioembolic given atrial fibrillation with subtherapeutic anticoagulation",
+    conclusionExplanation:
+      "Walter's sudden-onset right-sided weakness, facial droop, and dysarthria are classic FAST-positive findings. A normal glucose excludes hypoglycemia, and the non-contrast head CT shows no hemorrhage, clearing the way to treat this as an ischemic event. His atrial fibrillation with a subtherapeutic INR provides a plausible cardioembolic mechanism — a clot forming in the heart and traveling to the brain.",
+    keyConsiderations: [
+      "Establishing last-known-well time precisely is the single most important early step — it directly determines treatment eligibility",
+      "A non-contrast head CT's main job at this stage is excluding hemorrhage, not confirming the ischemic diagnosis itself",
+      "Hypoglycemia must be excluded at the bedside in essentially every suspected stroke, since it is a common and instantly reversible mimic",
+      "Atrial fibrillation with inconsistent anticoagulation is a classic, modifiable risk factor for cardioembolic stroke",
+    ],
+    recommendedAction:
+      "Confirm last-known-well time, exclude hypoglycemia and hemorrhage, activate the stroke pathway promptly, and monitor blood pressure and neurologic status closely while treatment decisions are made.",
+    goodOutcome:
+      "With rapid recognition and prompt activation of the stroke pathway within the treatment window, Walter has a meaningfully better chance of recovering function than if treatment were delayed.",
+    badOutcome:
+      "If last-known-well time isn't established quickly, or low-yield tests delay the core safety workup, Walter could fall outside the treatment window, substantially worsening his long-term outcome.",
+    nextLearningGoalHint:
+      "Next, try a case involving a hemorrhagic stroke to practice how the workup and treatment priorities differ when the head CT finding changes.",
+  },
+};

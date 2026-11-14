@@ -16,7 +16,13 @@ const FILTERS: { key: "all" | UnitStatus; label: string }[] = [
   { key: "planned", label: "Planned" },
 ];
 
-export default function TrackCurriculumClient({ trackKey }: { trackKey: TrackKey }) {
+export default function TrackCurriculumClient({
+  trackKey,
+  availableUnitKeys,
+}: {
+  trackKey: TrackKey;
+  availableUnitKeys: string[];
+}) {
   const t = TRACKS[trackKey];
   const [progress, setProgress] = useState<ProgressStore | null>(null);
   const [filter, setFilter] = useState<"all" | UnitStatus>("all");
@@ -26,9 +32,7 @@ export default function TrackCurriculumClient({ trackKey }: { trackKey: TrackKey
     setProgress(loadProgress());
   }, []);
 
-  // Only "blood-immune" (medicine) and "gi" (nursing) have an authored case today.
-  const unitHasCase = (unitKey: string) =>
-    (trackKey === "medicine" && unitKey === "blood-immune") || (trackKey === "nursing" && unitKey === "gi");
+  const unitHasCase = (unitKey: string) => availableUnitKeys.includes(unitKey);
 
   const statusOf = (unitKey: string): UnitStatus =>
     progress ? unitStatus(progress, trackKey, unitKey, unitHasCase(unitKey)) : unitHasCase(unitKey) ? "available" : "planned";

@@ -1,0 +1,403 @@
+import type { CaseFile } from "./types";
+
+/**
+ * Fictional case for educational simulation only. Not a substitute for
+ * supervision, local policy, clinical judgment, or professional care.
+ * Content status: needs_clinical_review — not yet checked by a licensed
+ * clinician. Do not present as validated.
+ */
+export const danielOseiCase: CaseFile = {
+  meta: {
+    id: "daniel-osei-warfarin-interaction",
+    version: "0.1.0",
+    title: "Daniel Osei: Bruising and Gum Bleeding on Warfarin",
+    trackKey: "medicine",
+    unitKey: "foundations",
+    author: "Momentum content team (fictional case; educational use only)",
+    reviewers: [],
+    reviewStatus: "needs_clinical_review",
+    reviewDate: null,
+    nextReviewDate: null,
+    sources: [
+      {
+        title: "Warfarin drug interactions — overview",
+        owner: "StatPearls / NCBI Bookshelf",
+        url: "https://www.ncbi.nlm.nih.gov/books/",
+        versionOrDate: "Specific chapter citation pending verification at clinical review",
+      },
+      {
+        title: "Warfarin (Professional)",
+        owner: "UpToDate",
+        url: "https://www.uptodate.com/",
+        versionOrDate: "Specific topic citation pending verification at clinical review",
+      },
+    ],
+    learningObjectives: [
+      "Recognize a CYP450-mediated drug interaction as a foundational pharmacology principle",
+      "Connect a new medication start to a change in a chronic medication's effect",
+      "Interpret an INR in the context of bleeding symptoms",
+      "Build a plan that addresses both the acute bleeding risk and the underlying interaction",
+    ],
+    targetLevel: "Foundations / Step 1-aligned, early clinical skills",
+    estimatedMinutes: 18,
+    contentWarning: null,
+  },
+  conclusionLabel: "Diagnosis",
+  actionLabel: "Treatment plan",
+  patient: {
+    name: "Daniel Osei",
+    age: 61,
+    pronouns: "he/him",
+    summary: "61-year-old man with atrial fibrillation on long-term warfarin",
+  },
+  presentingIssue: "Three days of easy bruising and bleeding gums while brushing his teeth.",
+  snapshotFacts: [
+    { label: "BP", value: "132/80 mmHg" },
+    { label: "HR", value: "78 bpm, irregular" },
+    { label: "RR", value: "16/min" },
+    { label: "Temp", value: "98.2°F" },
+    { label: "SpO2", value: "97% room air" },
+  ],
+  initialAssessment:
+    "Daniel is alert and in no acute distress, but visibly concerned. Several bruises of varying size are visible on his forearms. His gums show mild oozing at the gumline. No active hemorrhage, no neurologic deficits, and he is hemodynamically stable.",
+  examFindings: {
+    head: "Mild gingival oozing noted at the gumline. No facial droop, pupils equal and reactive.",
+    chest: "Heart rate irregular, consistent with known atrial fibrillation. No murmur. Lungs clear.",
+    abdomen: "Soft, non-tender, no distension, no masses.",
+    arms: "Multiple ecchymoses of varying size and color on both forearms, nontraumatic in distribution.",
+    legs: "A few smaller bruises on the shins. No swelling, no calf tenderness.",
+    skin: "Scattered petechiae noted on the lower legs. No jaundice.",
+  },
+  interviewTopics: [
+    {
+      id: "opening",
+      category: "HPI",
+      triggerKeywords: [],
+      openingLine: true,
+      factText:
+        "I've been bruising really easily the last few days, and my gums have been bleeding when I brush my teeth — that's never really happened to me before.",
+    },
+    {
+      id: "onset-course",
+      category: "HPI",
+      triggerKeywords: ["when", "start", "began", "onset", "how long", "course"],
+      factText:
+        "It started about three days ago. The bruises just seem to show up on their own, and they're bigger than the little bumps and scrapes I usually get.",
+    },
+    {
+      id: "bleeding-severity",
+      category: "HPI",
+      triggerKeywords: ["blood", "bleeding", "how much", "stop", "severe", "nosebleed"],
+      factText:
+        "The gum bleeding stops on its own after a minute or two. I haven't had a nosebleed or anything I couldn't get to stop, but it's still worried me enough to come in.",
+    },
+    {
+      id: "alleviating-aggravating",
+      category: "HPI",
+      triggerKeywords: ["makes it better", "makes it worse", "what helps", "relieve", "ease", "better when", "worse when"],
+      factText:
+        "Nothing really makes the bruising better or worse that I've noticed — it just seems to be happening more than usual lately, even from bumping into things lightly.",
+    },
+    {
+      id: "warfarin-history",
+      category: "Medications",
+      triggerKeywords: ["warfarin", "coumadin", "blood thinner", "anticoagulant", "inr"],
+      factText:
+        "I've been on warfarin for about four years now, ever since I was diagnosed with atrial fibrillation. I usually get my INR checked every month and it's been steady.",
+    },
+    {
+      id: "new-medication",
+      category: "Medications",
+      triggerKeywords: ["new medication", "antibiotic", "clarithromycin", "sinus", "started taking", "recently prescribed"],
+      factText:
+        "Oh — actually, my primary care doctor put me on an antibiotic about five days ago for a sinus infection. Clarithromycin, I think it's called. I didn't think that would matter.",
+    },
+    {
+      id: "diet-vitamin-k",
+      category: "Diet",
+      triggerKeywords: ["diet", "eat", "food", "greens", "vitamin k", "vegetables"],
+      factText:
+        "My diet hasn't really changed — I eat pretty much the same things I always do, no big changes in greens or anything like that.",
+    },
+    {
+      id: "pmh",
+      category: "PMH",
+      triggerKeywords: ["history", "medical history", "conditions", "liver", "kidney"],
+      factText:
+        "Besides the atrial fibrillation, I have high blood pressure that's controlled with medication. No liver or kidney problems that I know of.",
+    },
+    {
+      id: "falls-trauma",
+      category: "Safety",
+      triggerKeywords: ["fall", "trauma", "hit", "injury", "accident"],
+      factText:
+        "No falls or injuries — that's actually what's strange, some of these bruises just appeared without me bumping into anything I can remember.",
+    },
+    {
+      id: "allergies",
+      category: "Allergies",
+      triggerKeywords: ["allergy", "allergic", "allergies"],
+      factText: "No known drug allergies.",
+    },
+  ],
+  evidenceCategories: ["Labs", "Imaging", "Bedside"],
+  evidenceCatalog: [
+    {
+      id: "inr",
+      name: "INR",
+      category: "Labs",
+      resultText: "8.9 (critically elevated)",
+      referenceRange: "Therapeutic range for atrial fibrillation: typically 2.0–3.0",
+      resultFlag: "critical",
+      significant: true,
+      teachingNote: "A dramatic jump from a previously stable therapeutic range is the single most important clue here — it points to something new affecting warfarin metabolism, not a gradually worsening baseline condition.",
+      invasive: false,
+      costNote: "low cost",
+    },
+    {
+      id: "cbc",
+      name: "CBC with differential",
+      category: "Labs",
+      resultText: "Hemoglobin mildly low from minor blood loss, platelets normal, WBC normal",
+      referenceRange: "Hgb 13.5–17.5 g/dL (male), platelets 150–400 x10^9/L",
+      resultFlag: "abnormal",
+      significant: true,
+      teachingNote: "A normal platelet count with a markedly elevated INR points toward a coagulation factor problem (like excess warfarin effect) rather than a platelet disorder — the two bleed differently and look different on exam.",
+      invasive: false,
+      costNote: "low cost",
+    },
+    {
+      id: "head-ct",
+      name: "CT head without contrast",
+      category: "Imaging",
+      resultText: "No intracranial hemorrhage",
+      referenceRange: null,
+      resultFlag: "normal",
+      significant: false,
+      teachingNote: "Reasonable to obtain given the markedly elevated INR to rule out the most dangerous possible bleed, even without focal neurologic signs — a normal result is reassuring but doesn't change the need to address the INR itself.",
+      invasive: false,
+      costNote: "higher cost",
+    },
+    {
+      id: "liver-panel",
+      name: "Liver function panel",
+      category: "Labs",
+      resultText: "Normal",
+      referenceRange: null,
+      resultFlag: "normal",
+      significant: false,
+      teachingNote: "Reasonable to check since the liver makes clotting factors and metabolizes some drugs, but normal here helps exclude liver dysfunction as an alternative explanation for the elevated INR.",
+      invasive: false,
+      costNote: "low cost",
+    },
+    {
+      id: "medication-reconciliation",
+      name: "Medication reconciliation review",
+      category: "Bedside",
+      resultText: "Clarithromycin started 5 days ago, overlapping with the new bleeding symptoms; warfarin dose unchanged",
+      referenceRange: null,
+      resultFlag: "abnormal",
+      significant: true,
+      teachingNote: "Free, fast, and often the highest-yield step in a case like this — a careful medication timeline frequently explains the problem before a single lab comes back.",
+      invasive: false,
+      costNote: "low cost",
+    },
+    {
+      id: "stool-occult",
+      name: "Stool occult blood test",
+      category: "Labs",
+      resultText: "Negative",
+      referenceRange: null,
+      resultFlag: "normal",
+      significant: false,
+      teachingNote: "A reasonable check for a less visible bleeding source; negative here supports that the bleeding is limited to mucosal/skin sites so far.",
+      invasive: false,
+      costNote: "low cost",
+    },
+    {
+      id: "skin-exam",
+      name: "Focused skin and mucosal exam",
+      category: "Bedside",
+      resultText: "Multiple ecchymoses and petechiae, mild gingival oozing, no active hemorrhage",
+      referenceRange: null,
+      resultFlag: "abnormal",
+      significant: true,
+      teachingNote: "Documents the extent of bleeding risk and gives a baseline to compare against after treatment.",
+      invasive: false,
+      costNote: "low cost",
+    },
+  ],
+  stages: [
+    { key: "brief", label: "Brief" },
+    { key: "interview", label: "Interview" },
+    { key: "evidence", label: "Evidence" },
+    { key: "interpretation", label: "Interpretation" },
+    { key: "reasoning", label: "Reasoning" },
+    { key: "plan", label: "Plan" },
+    { key: "event", label: "Follow-up" },
+    { key: "debrief", label: "Debrief" },
+  ],
+  interpretationQuestions: [
+    {
+      id: "interp-1",
+      type: "mcq",
+      display: "dropdown",
+      prompt: "The critically elevated INR with a normal platelet count and recent clarithromycin start is most consistent with:",
+      options: [
+        "A warfarin-clarithromycin drug interaction causing supratherapeutic anticoagulation",
+        "A primary platelet disorder",
+        "Disseminated intravascular coagulation",
+        "Vitamin K deficiency from dietary change",
+      ],
+      correctIndex: 0,
+      rationale:
+        "Clarithromycin inhibits the CYP450 enzymes that metabolize warfarin, raising its effect. A normal platelet count argues against a platelet disorder, and there's no evidence of the systemic illness that drives DIC or a dietary change that would explain vitamin K deficiency.",
+    },
+    {
+      id: "interp-2",
+      type: "multi-select",
+      prompt: "Which findings support a drug-interaction explanation rather than another cause of bleeding? (select all that apply)",
+      options: [
+        "Clarithromycin started days before symptoms began",
+        "Normal platelet count",
+        "No change in diet",
+        "Normal liver panel",
+        "Petechiae on the lower legs",
+      ],
+      correctIndices: [0, 1, 2, 3],
+      partialCredit: true,
+      rationale:
+        "The medication timeline is the key clue; a normal platelet count, stable diet, and normal liver function all help exclude the main alternative explanations. Petechiae describe the bleeding pattern itself, not what's causing it.",
+    },
+  ],
+  quizQuestions: [
+    {
+      id: "quiz-1",
+      type: "mcq",
+      display: "radio",
+      prompt: "Clarithromycin raises warfarin's effect primarily by:",
+      options: [
+        "Inhibiting CYP450 enzymes that metabolize warfarin",
+        "Displacing warfarin from albumin",
+        "Increasing vitamin K absorption",
+        "Directly damaging the liver",
+      ],
+      correctIndex: 0,
+      rationale: "Macrolide antibiotics like clarithromycin are classic CYP450 inhibitors that slow warfarin clearance, raising INR.",
+    },
+    {
+      id: "quiz-2",
+      type: "mcq",
+      display: "radio",
+      prompt: "A normal platelet count with a markedly elevated INR points toward a problem with:",
+      options: ["Coagulation factors", "Platelet function", "Vascular fragility alone", "Red cell production"],
+      correctIndex: 0,
+      rationale: "INR reflects the extrinsic coagulation pathway (factors), not platelet count or function.",
+    },
+    {
+      id: "quiz-3",
+      type: "mcq",
+      display: "radio",
+      prompt: "Before prescribing a new medication to a patient on warfarin, it's important to:",
+      options: [
+        "Check for known interactions that could raise or lower INR",
+        "Assume all antibiotics are safe with warfarin",
+        "Only worry about interactions if the patient reports symptoms",
+        "Stop warfarin automatically for any new prescription",
+      ],
+      correctIndex: 0,
+      rationale: "Many common medications, including several antibiotics, interact with warfarin — checking first prevents exactly this scenario.",
+    },
+  ],
+  conclusionOptions: [
+    "Warfarin-clarithromycin drug interaction causing supratherapeutic anticoagulation",
+    "Idiopathic thrombocytopenic purpura",
+    "Disseminated intravascular coagulation",
+    "Vitamin K deficiency",
+  ],
+  correctConclusionIndex: 0,
+  differentialQuestion: {
+    id: "differential-1",
+    type: "multi-select",
+    prompt: "Before the medication timeline and labs came back, which of these were reasonable alternatives to consider? (select all that apply)",
+    options: [
+      "A primary platelet disorder",
+      "Liver dysfunction affecting clotting factor production",
+      "Vitamin K deficiency",
+      "An unreported change in warfarin dosing",
+      "Disseminated intravascular coagulation",
+    ],
+    correctIndices: [0, 1, 2, 3, 4],
+    partialCredit: true,
+    rationale:
+      "All of these can cause bleeding with an abnormal coagulation picture, and a broad differential is reasonable before the medication history and targeted labs narrow things down.",
+  },
+  confidenceQuestion: {
+    id: "confidence-1",
+    type: "confidence",
+    prompt: "Before seeing the debrief, how confident are you in this diagnosis?",
+  },
+  changeMyMindQuestion: {
+    id: "change-mind-1",
+    type: "short-text",
+    prompt: "What single finding would most change your explanation for Daniel's bleeding?",
+    rubricKeywords: [
+      "platelet count low",
+      "thrombocytopenia",
+      "liver dysfunction",
+      "no antibiotic",
+      "inr normal",
+      "dic",
+      "fibrinogen low",
+      "schistocytes",
+    ],
+    sampleAnswer:
+      "If his platelet count had come back low instead of normal, I'd reconsider a platelet disorder. If the medication timeline didn't line up with symptom onset, I'd look harder at liver function or an undisclosed dosing change.",
+    rationale: "The platelet count and medication timeline are the two findings doing the most work to point toward a drug interaction specifically.",
+  },
+  planPrompt: {
+    label: "Treatment plan",
+    placeholder: "What would you recommend next for Daniel?",
+    safetyChecklist: [
+      "Assess for signs of serious or life-threatening bleeding needing urgent reversal",
+      "Hold or adjust warfarin dosing given the critically elevated INR",
+      "Address the interacting medication (consider an alternative antibiotic)",
+      "Arrange close INR follow-up until it returns to therapeutic range",
+      "Educate on bleeding precautions until INR normalizes",
+    ],
+    rubricKeywords: [
+      "hold warfarin",
+      "inr",
+      "alternative antibiotic",
+      "follow-up",
+      "recheck",
+      "bleeding precautions",
+      "vitamin k",
+      "reversal",
+      "monitor",
+      "interaction",
+    ],
+    sampleAnswer:
+      "Hold or reduce the warfarin dose given the critically elevated INR, and assess whether reversal is needed based on bleeding severity. Discuss with the prescribing clinician about switching to a non-interacting antibiotic for the sinus infection. Arrange frequent INR rechecks until it returns to therapeutic range, and counsel Daniel on bleeding precautions (avoiding contact sports, using a soft toothbrush) in the meantime. This is general reasoning for a learning exercise, not patient-specific dosing guidance.",
+  },
+  unfoldingEvent: null,
+  debrief: {
+    correctConclusionLabel: "Diagnosis",
+    correctConclusion: "Warfarin-clarithromycin drug interaction causing supratherapeutic anticoagulation",
+    conclusionExplanation:
+      "Daniel's INR jumped from a stable therapeutic baseline to a critical value days after starting clarithromycin. Clarithromycin inhibits the CYP450 enzymes that normally clear warfarin, causing its anticoagulant effect to build up. A normal platelet count and liver panel help rule out the main alternative explanations, leaving the medication interaction as the clear cause.",
+    keyConsiderations: [
+      "A careful medication timeline is often the highest-yield step in a case like this — before any lab comes back",
+      "Macrolide antibiotics are classic, common CYP450 inhibitors that interact with warfarin",
+      "INR reflects coagulation factors, not platelets — a normal platelet count with an abnormal INR points to a different mechanism than a normal INR with low platelets",
+      "A dramatic change from a stable baseline should always prompt a 'what changed recently' review",
+    ],
+    recommendedAction:
+      "Hold or adjust the warfarin dose, address the interacting antibiotic, arrange close INR follow-up, and counsel on bleeding precautions until resolved.",
+    goodOutcome:
+      "With the antibiotic switched and warfarin dosing adjusted, Daniel's INR trends back toward therapeutic range over the following week and his bruising and gum bleeding resolve.",
+    badOutcome:
+      "If the interaction goes unrecognized and warfarin continues unchanged, Daniel is at risk for a major bleeding event, including intracranial hemorrhage.",
+    nextLearningGoalHint: "Next, try a case involving a different class of drug interaction to practice recognizing this pattern in other contexts.",
+  },
+};
