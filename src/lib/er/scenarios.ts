@@ -1,0 +1,243 @@
+import type { ErScenario } from "./types";
+
+/**
+ * Fictional, illustrative timed-response scenarios for order-entry
+ * practice under time pressure. Educational simulation only — content
+ * status: needs clinical review, same as every case in this product.
+ */
+export const ER_SCENARIOS: ErScenario[] = [
+  {
+    id: "anaphylaxis",
+    title: "Anaphylaxis",
+    patientSummary:
+      "34-year-old, hives and lip swelling minutes after eating shellfish, now wheezing with a dropping blood pressure.",
+    snapshotFacts: [
+      { label: "BP", value: "82/50 mmHg" },
+      { label: "HR", value: "128 bpm" },
+      { label: "RR", value: "28/min" },
+      { label: "SpO2", value: "91% room air" },
+    ],
+    timeLimitSeconds: 90,
+    orderCategories: ["Medications", "Actions", "Monitoring"],
+    orderCatalog: [
+      {
+        id: "epi-im",
+        label: "Epinephrine IM, anterolateral thigh",
+        category: "Medications",
+        correct: true,
+        critical: true,
+        harmful: false,
+        rationale: "First-line and time-critical — IM epinephrine should never be delayed for anything else on this list.",
+      },
+      {
+        id: "iv-fluids",
+        label: "IV fluid bolus",
+        category: "Actions",
+        correct: true,
+        critical: true,
+        harmful: false,
+        rationale: "Addresses the hypotension directly, alongside epinephrine.",
+      },
+      {
+        id: "oxygen",
+        label: "Supplemental oxygen",
+        category: "Actions",
+        correct: true,
+        critical: false,
+        harmful: false,
+        rationale: "Appropriate given the low SpO2 and respiratory involvement.",
+      },
+      {
+        id: "diphenhydramine",
+        label: "Diphenhydramine IV",
+        category: "Medications",
+        correct: true,
+        critical: false,
+        harmful: false,
+        rationale: "A reasonable adjunct for hives/itching — but never a substitute for epinephrine.",
+      },
+      {
+        id: "methylprednisolone",
+        label: "Methylprednisolone IV",
+        category: "Medications",
+        correct: true,
+        critical: false,
+        harmful: false,
+        rationale: "May help reduce the risk of a biphasic reaction later — an adjunct, not first-line.",
+      },
+      {
+        id: "albuterol",
+        label: "Albuterol nebulizer",
+        category: "Medications",
+        correct: true,
+        critical: false,
+        harmful: false,
+        rationale: "Reasonable adjunct for the wheeze, alongside — not instead of — epinephrine.",
+      },
+      {
+        id: "monitor",
+        label: "Continuous cardiac and pulse-ox monitoring",
+        category: "Monitoring",
+        correct: true,
+        critical: false,
+        harmful: false,
+        rationale: "Standard of care for an unstable patient — easy to forget to actually order it.",
+      },
+      {
+        id: "oral-antihistamine-only",
+        label: "Oral antihistamine only, reassess in an hour",
+        category: "Medications",
+        correct: false,
+        critical: false,
+        harmful: true,
+        rationale: "Far too slow and the wrong route for a patient this unstable — this delays the one time-critical intervention.",
+      },
+      {
+        id: "discharge-home",
+        label: "Discharge home with instructions",
+        category: "Actions",
+        correct: false,
+        critical: false,
+        harmful: true,
+        rationale: "This patient is actively deteriorating — discharge is unsafe.",
+      },
+      {
+        id: "beta-blocker",
+        label: "Give a beta-blocker",
+        category: "Medications",
+        correct: false,
+        critical: false,
+        harmful: true,
+        rationale: "Can blunt the response to epinephrine and worsen bronchospasm — avoid in this picture.",
+      },
+      {
+        id: "wait-for-allergist",
+        label: "Wait for an allergy consult before treating",
+        category: "Actions",
+        correct: false,
+        critical: false,
+        harmful: true,
+        rationale: "Anaphylaxis is treated immediately on clinical grounds — a consult is never the first step.",
+      },
+    ],
+    successOutcome:
+      "Epinephrine and fluids go in fast. Within minutes the patient's breathing eases and their pressure comes back up — textbook response to timely treatment.",
+    failureOutcome:
+      "Without epinephrine on board quickly, the airway and blood pressure keep worsening, and the patient needs escalating rescue measures that timely treatment would have avoided.",
+    keyConsiderations: [
+      "IM epinephrine is the one intervention that can't wait — everything else is supportive or adjunctive",
+      "Antihistamines and steroids help but are never a substitute for epinephrine",
+      "A stable-looking patient can decompensate fast — don't let 'mild' hives delay recognizing anaphylaxis",
+    ],
+  },
+  {
+    id: "stemi-chest-pain",
+    title: "STEMI chest pain",
+    patientSummary:
+      "58-year-old, 45 minutes of crushing substernal chest pain, diaphoretic. ECG shows ST-segment elevation.",
+    snapshotFacts: [
+      { label: "BP", value: "138/88 mmHg" },
+      { label: "HR", value: "98 bpm" },
+      { label: "RR", value: "20/min" },
+      { label: "SpO2", value: "96% room air" },
+    ],
+    timeLimitSeconds: 120,
+    orderCategories: ["Medications", "Actions", "Monitoring"],
+    orderCatalog: [
+      {
+        id: "aspirin",
+        label: "Aspirin 324mg, chewed",
+        category: "Medications",
+        correct: true,
+        critical: true,
+        harmful: false,
+        rationale: "A time-critical first step in any suspected ACS presentation.",
+      },
+      {
+        id: "activate-cath-lab",
+        label: "Activate the cath lab / STEMI protocol",
+        category: "Actions",
+        correct: true,
+        critical: true,
+        harmful: false,
+        rationale: "Door-to-balloon time is the single biggest driver of outcome here — this happens immediately, in parallel with everything else.",
+      },
+      {
+        id: "iv-access",
+        label: "Obtain IV access",
+        category: "Actions",
+        correct: true,
+        critical: false,
+        harmful: false,
+        rationale: "Needed for everything that follows — easy to forget under pressure.",
+      },
+      {
+        id: "monitor",
+        label: "Continuous cardiac monitoring",
+        category: "Monitoring",
+        correct: true,
+        critical: false,
+        harmful: false,
+        rationale: "Standard of care given the arrhythmia risk in an active MI.",
+      },
+      {
+        id: "nitro",
+        label: "Nitroglycerin (after confirming no right-sided MI / recent PDE5-inhibitor use)",
+        category: "Medications",
+        correct: true,
+        critical: false,
+        harmful: false,
+        rationale: "Reasonable for pain and preload reduction once the relevant contraindications are checked.",
+      },
+      {
+        id: "morphine",
+        label: "Morphine for pain, if still needed",
+        category: "Medications",
+        correct: true,
+        critical: false,
+        harmful: false,
+        rationale: "An adjunct for pain not controlled by nitroglycerin — not a first-line or time-critical step.",
+      },
+      {
+        id: "nsaid",
+        label: "High-dose NSAID for pain",
+        category: "Medications",
+        correct: false,
+        critical: false,
+        harmful: true,
+        rationale: "NSAIDs are avoided after an MI — they can worsen cardiovascular outcomes.",
+      },
+      {
+        id: "discharge-followup",
+        label: "Discharge with outpatient cardiology follow-up",
+        category: "Actions",
+        correct: false,
+        critical: false,
+        harmful: true,
+        rationale: "A STEMI is a medical emergency — this is never an acute-visit disposition.",
+      },
+      {
+        id: "wait-for-troponin",
+        label: "Wait for troponin results before doing anything",
+        category: "Actions",
+        correct: false,
+        critical: false,
+        harmful: true,
+        rationale: "STEMI is diagnosed and acted on by ECG and clinical picture — waiting on labs costs irreplaceable time.",
+      },
+    ],
+    successOutcome:
+      "Aspirin is given and the cath lab is activated within minutes. The patient goes for timely reperfusion with a strong chance of a good outcome.",
+    failureOutcome:
+      "Delay in recognizing and acting on the STEMI pattern costs critical door-to-balloon time, increasing the risk of lasting heart damage.",
+    keyConsiderations: [
+      "Aspirin and cath lab activation happen immediately and in parallel — not sequentially after other steps",
+      "This is diagnosed from the ECG and presentation, not from waiting on labs",
+      "Adjuncts like nitro and morphine matter, but never at the expense of the two time-critical steps",
+    ],
+  },
+];
+
+export function getErScenario(id: string): ErScenario | undefined {
+  return ER_SCENARIOS.find((s) => s.id === id);
+}

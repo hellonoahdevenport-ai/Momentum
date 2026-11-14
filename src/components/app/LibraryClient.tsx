@@ -81,6 +81,25 @@ export default function LibraryClient({ cards }: { cards: LibraryCard[] }) {
       </div>
 
       {filtered.length === 0 && <p className="mt-10 text-center text-sm text-foreground-dim">No cases match that search.</p>}
+
+      <h2 className="font-display mt-12 text-lg font-bold text-foreground">Skill drills</h2>
+      <p className="mt-1 text-sm text-foreground-dim">Shorter, focused practice outside the full case loop.</p>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <Link href="/app/ecg" className="card-lift block rounded-2xl border border-border bg-surface p-5">
+          <span className="text-xs font-bold uppercase tracking-wide text-accent">ECG practice</span>
+          <h3 className="font-display mt-2 text-base font-bold text-foreground">Rhythm strip identification</h3>
+          <p className="mt-1.5 text-sm leading-relaxed text-foreground-dim">
+            Identify the rhythm, then the appropriate next step — illustrative strips, not real patient data.
+          </p>
+        </Link>
+        <Link href="/app/er" className="card-lift block rounded-2xl border border-border bg-surface p-5">
+          <span className="text-xs font-bold uppercase tracking-wide text-coral">Timed scenario</span>
+          <h3 className="font-display mt-2 text-base font-bold text-foreground">Emergency room order entry</h3>
+          <p className="mt-1.5 text-sm leading-relaxed text-foreground-dim">
+            A countdown is running — choose the right orders fast, or the patient declines.
+          </p>
+        </Link>
+      </div>
     </div>
   );
 }

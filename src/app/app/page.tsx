@@ -83,6 +83,20 @@ export default function AppHomePage() {
         })}
       </div>
 
+      <h2 className="font-display mt-12 text-lg font-bold text-foreground">Skill drills</h2>
+      <div className="mt-4 grid gap-5 sm:grid-cols-2">
+        <Link href="/app/ecg" className="card-lift block rounded-3xl border border-border bg-surface p-6">
+          <Badge tone="accent">ECG practice</Badge>
+          <div className="font-display mt-3 text-lg font-bold text-foreground">Rhythm strip identification</div>
+          <p className="mt-1 text-sm text-foreground-dim">Identify the rhythm, then the next step.</p>
+        </Link>
+        <Link href="/app/er" className="card-lift block rounded-3xl border border-border bg-surface p-6">
+          <Badge tone="coral">Timed scenario</Badge>
+          <div className="font-display mt-3 text-lg font-bold text-foreground">Emergency room order entry</div>
+          <p className="mt-1 text-sm text-foreground-dim">A countdown is running — move fast.</p>
+        </Link>
+      </div>
+
       <h2 className="font-display mt-12 text-lg font-bold text-foreground">Recent performance</h2>
       {recent.length === 0 ? (
         <p className="mt-3 text-sm text-foreground-dim">No attempts yet — your first debrief will show up here.</p>
