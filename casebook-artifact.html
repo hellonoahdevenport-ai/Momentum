@@ -1,0 +1,2352 @@
+<title>Casebook</title>
+<style>
+/* layout: a real dashboard shell, not a single-flow app. Fixed left sidebar
+   (collapses to a top bar on phones) + hash-routed pages: #home, #medicine,
+   #nursing, #case, #quiz. Horizontal unit timeline (not a vertical zigzag).
+   Pinned to a single light theme by design - no dark-mode media query - so
+   it never fights the OS theme. Every page/tab is reachable at all times. */
+:root{
+  --bg:#f6f8fb; --surface:#ffffff; --surface-2:#eef1f6; --border:#e2e8f0;
+  --text:#0f172a; --text-dim:#64748b; --accent:#2563eb; --accent-dark:#1e40af;
+  --accent-soft:#eaf0fe; --good:#16a34a; --good-soft:#dcfce7; --warn:#d97706;
+  --warn-soft:#fef3c7; --bad:#dc2626; --bad-soft:#fee2e2;
+  --ink:#070e0b; --ink-2:#0e2117; --brand:#22e08a; --brand-ink:#04150c;
+  color-scheme:light;
+}
+.track-medicine{ --accent:#2563eb; --accent-dark:#1e40af; --accent-soft:#eaf0fe; }
+.track-nursing{ --accent:#7c3aed; --accent-dark:#5b21b6; --accent-soft:#f1eafe; }
+
+*{box-sizing:border-box;}
+html,body{margin:0; height:100%;}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:"Inter",system-ui,-apple-system,sans-serif;
+}
+.disp{font-family:"Baloo 2",system-ui,sans-serif; font-weight:700;}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums;}
+.sc{text-transform:uppercase; letter-spacing:.07em; font-size:11px; font-weight:700; color:var(--text-dim);}
+a{color:var(--accent);}
+button{font-family:inherit;}
+
+/* ---- buttons (pill style) ---- */
+.btn{background:var(--accent); color:#fff; border:none; border-radius:999px; padding:13px 24px; font-family:"Baloo 2",sans-serif; font-weight:700; font-size:15px; cursor:pointer; display:inline-flex; align-items:center; gap:9px; transition:transform .08s, filter .1s;}
+.btn:hover:not(:disabled){filter:brightness(1.06);}
+.btn:active:not(:disabled){transform:scale(.97);}
+.btn:disabled{opacity:.4; cursor:default;}
+.btn-ghost{background:rgba(255,255,255,.08); color:#fff; border:1px solid rgba(255,255,255,.18);}
+.btn-dark{background:var(--ink); color:#fff;}
+.btn-brand{background:var(--brand); color:var(--brand-ink);}
+.btn-arrow{width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.14); display:inline-flex;align-items:center;justify-content:center; font-size:12px; flex:none;}
+.btn-ghost .btn-arrow, .btn-dark .btn-arrow{background:rgba(255,255,255,.18);}
+.link-btn{background:none; border:none; padding:0; color:var(--accent); font-size:14px; font-weight:700; cursor:pointer; font-family:"Baloo 2",sans-serif;}
+.link-btn:hover{text-decoration:underline;}
+
+/* ---- shell: sidebar + main ---- */
+.shell{display:flex; min-height:100vh;}
+.sidebar{width:226px; flex:none; background:var(--ink); color:#fff; padding:20px 14px; display:flex; flex-direction:column; position:sticky; top:0; align-self:flex-start; height:100vh; z-index:10;}
+.sidebar .wordmark{display:flex; align-items:center; gap:9px; padding:6px 10px 18px;}
+.sidebar .wordmark .dot{width:10px;height:10px;border-radius:50%; background:var(--brand); box-shadow:0 0 10px var(--brand);}
+.sidebar .wordmark .word{font-size:16px; font-weight:800;}
+.side-nav{display:flex; flex-direction:column; gap:3px;}
+.side-link{display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:10px; color:#9fb0a7; font-size:14px; font-weight:600; cursor:pointer; background:none; border:none; text-align:left; width:100%;}
+.side-link:hover{color:#fff; background:rgba(255,255,255,.05);}
+.side-link.active{background:rgba(255,255,255,.1); color:#fff;}
+.side-link .ic{width:20px; text-align:center; flex:none;}
+.side-sub{margin:14px 0 6px; padding:0 12px;}
+.side-foot{margin-top:auto; padding-top:14px; border-top:1px solid rgba(255,255,255,.1); display:flex; flex-direction:column; gap:10px;}
+.toggle-row{display:flex; align-items:center; justify-content:space-between; font-size:12px; color:#9fb0a7; padding:0 4px;}
+.switch{width:36px;height:20px;border-radius:999px; background:rgba(255,255,255,.18); position:relative; cursor:pointer; border:none; flex:none;}
+.switch.on{background:var(--brand);}
+.switch .knob{position:absolute; top:2px; left:2px; width:16px;height:16px;border-radius:50%; background:#fff; transition:left .15s;}
+.switch.on .knob{left:18px;}
+.main{flex:1; min-width:0; background:var(--bg); background-image:radial-gradient(circle, #dbe3ee 1px, transparent 1px); background-size:20px 20px;}
+.topbar{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px max(28px, env(safe-area-inset-right,0px)) 18px 28px; border-bottom:1px solid var(--border); background:rgba(255,255,255,.7); backdrop-filter:blur(6px); position:sticky; top:0; z-index:5;}
+.topbar h1{font-size:17px; margin:0;}
+.topbar .crumb{font-size:12px; color:var(--text-dim);}
+.content{padding:28px max(28px, env(safe-area-inset-right,0px)) 60px 28px; max-width:1040px;}
+
+@media (max-width:760px){
+  .shell{flex-direction:column;}
+  .sidebar{width:100%; height:auto; position:static; flex-direction:row; align-items:center; padding:12px; overflow-x:auto; gap:10px;}
+  .sidebar .wordmark{padding:4px 8px; flex:none;}
+  .side-nav{flex-direction:row; gap:4px;}
+  .side-link{white-space:nowrap;}
+  .side-foot{margin:0 0 0 auto; padding:0; border:none; flex-direction:row; align-items:center; flex:none;}
+  .content{padding:20px max(16px, env(safe-area-inset-right,0px)) 60px max(16px, env(safe-area-inset-left,0px));}
+  .topbar{padding:14px 16px;}
+}
+
+/* ---- home / hero card ---- */
+.hero-card{position:relative; overflow:hidden; border-radius:26px; background:radial-gradient(ellipse 120% 90% at 20% -10%, #184a32 0%, var(--ink-2) 45%, var(--ink) 100%); color:#fff; padding:40px 34px; margin-bottom:26px;}
+.hero-badge{display:inline-flex; align-items:center; gap:8px; background:rgba(34,224,138,.12); border:1px solid rgba(34,224,138,.35); color:var(--brand); padding:5px 13px 5px 6px; border-radius:999px; font-size:12.5px; font-weight:600;}
+.hero-badge .tag{background:var(--brand); color:var(--brand-ink); font-size:10px; font-weight:800; padding:2px 7px; border-radius:999px; letter-spacing:.03em;}
+.hero-card h1{font-size:clamp(26px,4.5vw,38px); line-height:1.1; margin:16px 0 12px; color:#eef7f1; text-wrap:balance;}
+.hero-card h1 .accent{color:var(--brand);}
+.hero-card p.lede{color:#aab8b0; font-size:15px; line-height:1.55; max-width:460px; margin:0 0 22px;}
+.hero-ctas{display:flex; flex-wrap:wrap; gap:12px;}
+
+.stat-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:26px;}
+.stat-card{background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px 20px;}
+.stat-card .v{font-family:"Baloo 2",sans-serif; font-size:26px; font-weight:700;}
+.stat-card .l{font-size:12px; color:var(--text-dim); margin-top:3px;}
+
+.track-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px;}
+.track-card2{border-radius:22px; padding:24px; background:var(--accent-soft); border-bottom:5px solid var(--accent-dark); cursor:pointer; text-align:left;}
+.track-card2 .k{display:inline-flex; align-items:center; gap:6px; background:#fff; color:var(--accent); font-size:11px; font-weight:700; padding:4px 10px; border-radius:999px;}
+.track-card2 h3{font-size:20px; margin:12px 0 6px;}
+.track-card2 p{color:var(--text-dim); font-size:13.5px; margin:0 0 14px; line-height:1.5;}
+.track-card2 .pbar{height:7px; border-radius:999px; background:rgba(0,0,0,.08); overflow:hidden; margin-bottom:8px;}
+.track-card2 .pbar i{display:block; height:100%; background:var(--accent); border-radius:999px;}
+.track-card2 .pct{font-size:11.5px; color:var(--text-dim); font-family:"IBM Plex Mono",monospace;}
+
+/* ---- card / section shared ---- */
+.card{background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:24px;}
+.card + .card{margin-top:16px;}
+
+/* ---- horizontal skill path ---- */
+.path-top-row{display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; flex-wrap:wrap; gap:10px;}
+.tier-badge{display:inline-flex; align-items:center; gap:8px; background:var(--accent); color:#fff; padding:5px 13px 5px 10px; border-radius:999px; font-size:12px; font-weight:700;}
+.progress-line{font-size:12.5px; color:var(--text-dim); margin:6px 0 0;}
+.unlock-banner{background:var(--good-soft); color:var(--good); border-radius:12px; padding:12px 16px; font-size:14px; font-weight:600; margin:14px 0;}
+.hpath-scroll{overflow-x:auto; padding:30px 4px 14px;}
+.hpath{position:relative; display:inline-flex; gap:42px; padding:0 20px; min-width:100%;}
+.hpath::before{content:""; position:absolute; left:20px; right:20px; top:31px; height:4px; background:var(--border); z-index:0;}
+.unit-wrap{position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; gap:7px; flex:none; width:96px;}
+.unit-node{width:62px;height:62px;border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:"Baloo 2",sans-serif; font-weight:700; font-size:17px; color:#fff; border:none; cursor:pointer; position:relative; box-shadow:0 3px 0 rgba(0,0,0,.16), 0 3px 10px rgba(0,0,0,.1);}
+.unit-node:active:not(.locked){transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.16);}
+.unit-node.locked{background:var(--surface-2); color:var(--text-dim); box-shadow:none; cursor:not-allowed;}
+.unit-node .check{position:absolute; top:-5px; right:-5px; width:22px;height:22px;border-radius:50%; background:var(--good); color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; border:3px solid var(--surface);}
+.unit-node .lock-ic{font-size:16px;}
+.unit-label{font-size:12px; font-weight:600; text-align:center;}
+.unit-reps{font-size:10.5px; color:var(--text-dim);}
+.start-pill{background:var(--accent); color:#fff; font-size:10px; font-weight:700; letter-spacing:.04em; padding:3px 9px; border-radius:999px; margin-top:-2px; white-space:nowrap;}
+.future-tiers{margin-top:30px; border-top:1px solid var(--border); padding-top:20px;}
+.future-tiers .sc{margin-bottom:10px; display:block;}
+.future-row{display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:var(--surface-2); border-radius:12px; margin-bottom:8px; opacity:.75;}
+.future-row .ft-name{font-size:14px; font-weight:600;}
+.future-row .ft-sub{font-size:12px; color:var(--text-dim);}
+.future-row .lock-ic{color:var(--text-dim);}
+
+/* ---- case header ---- */
+.case-head-row{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;}
+.unit-pill{display:inline-flex; align-items:center; gap:7px; background:var(--accent-soft); color:var(--accent); padding:5px 11px; border-radius:999px; font-size:12px; font-weight:700;}
+.unit-pill .sw{width:8px;height:8px;border-radius:50%; background:var(--accent);}
+.subject-name{font-size:22px; margin:12px 0 0; font-weight:700;}
+.subject-summary{color:var(--text-dim); font-size:13.5px; margin:3px 0 0;}
+.presenting{font-size:14px; margin:9px 0 0; line-height:1.5;}
+.snapshot{display:flex; flex-wrap:wrap; gap:4px 14px; margin-top:9px; font-size:12px;}
+.snapshot span.l{color:var(--text-dim); margin-right:4px;}
+.tabs{display:flex; gap:8px; margin-top:18px; overflow-x:auto;}
+.tab{background:var(--surface-2); border:none; padding:7px 13px; font-size:13px; font-weight:700; color:var(--text-dim); cursor:pointer; white-space:nowrap; border-radius:999px; font-family:"Baloo 2",sans-serif;}
+.tab.active{color:#fff; background:var(--accent);}
+.tab.done:not(.active){color:var(--accent); background:var(--accent-soft);}
+.placeholder-note{font-size:13px; color:var(--text-dim); padding:30px 0; text-align:center;}
+
+/* ---- panel / shared ---- */
+.notice{background:var(--warn-soft); color:var(--warn); font-size:13px; padding:10px 14px; border-radius:10px; margin-bottom:16px;}
+.panel-actions{display:flex; justify-content:flex-end; margin-top:18px; gap:12px; align-items:center;}
+
+/* ---- interview ---- */
+.transcript{display:flex; flex-direction:column; max-height:420px; overflow-y:auto; padding-right:2px;}
+.line{padding:12px 0; border-bottom:1px solid var(--border);}
+.line .who{font-size:11px; letter-spacing:.05em; text-transform:uppercase; font-weight:700; margin-bottom:4px;}
+.line.them .who{color:var(--text-dim);}
+.line.me .who{color:var(--accent);}
+.line p{margin:0; font-size:15px; line-height:1.5;}
+.line.typing p{color:var(--text-dim); font-style:italic;}
+.ask-row{display:flex; align-items:center; gap:10px; margin-top:14px; background:var(--surface-2); border-radius:999px; padding:6px 6px 6px 18px;}
+.ask-row input{flex:1; min-width:0; background:transparent; border:none; padding:9px 2px; color:var(--text); font-size:15px; font-family:inherit;}
+.ask-row input:focus{outline:none;}
+.ask-row input::placeholder{color:var(--text-dim);}
+.ask-row .link-btn{background:var(--accent); color:#fff; border-radius:999px; padding:8px 16px;}
+.scripted-note{font-size:13px; color:var(--text-dim); margin-top:14px; font-style:italic;}
+
+/* ---- evidence ---- */
+.initial-assessment{font-size:14px; line-height:1.55; padding:14px 16px; background:var(--surface-2); border-radius:14px; margin-bottom:18px;}
+.initial-assessment .sc{display:block; margin-bottom:6px;}
+.ev-group{margin-top:20px;}
+.ev-group h4{font-family:"Baloo 2",sans-serif; font-weight:700; font-size:15px; margin:0 0 6px;}
+.ev-row{display:flex; align-items:center; gap:12px; padding:11px 10px; border-radius:10px;}
+.ev-row.pickable{cursor:pointer;}
+.ev-row.pickable:hover{background:var(--surface-2);}
+.ev-row input[type=checkbox]{accent-color:var(--accent); width:16px; height:16px; flex:none;}
+.ev-name{flex:1; min-width:0; font-size:14px;}
+.ev-result{font-size:13px; color:var(--text-dim); text-align:right; display:flex; align-items:center; gap:6px; justify-content:flex-end;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--warn); flex:none;}
+.ev-actions{display:flex; justify-content:space-between; align-items:center; margin-top:18px; gap:10px; flex-wrap:wrap;}
+.selected-count{font-size:13px; color:var(--text-dim);}
+
+/* ---- conclusion form ---- */
+.field{display:flex; flex-direction:column; gap:7px; margin-bottom:18px;}
+.field label{font-family:"Baloo 2",sans-serif; font-weight:700; font-size:15px;}
+.field select, .field textarea{background:var(--surface-2); border:2px solid transparent; border-radius:14px; padding:12px 14px; color:var(--text); font-size:14px; font-family:inherit;}
+.field select{appearance:none; -webkit-appearance:none; cursor:pointer; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='2' fill='none' fill-rule='evenodd'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 16px center; padding-right:36px;}
+.field textarea{resize:vertical; min-height:72px;}
+.field select:focus, .field textarea:focus{outline:none; border-color:var(--accent);}
+.field .hint{font-size:12px; color:var(--text-dim);}
+
+/* ---- feedback ---- */
+.score-row{display:flex; align-items:center; gap:18px; flex-wrap:wrap; padding:18px; background:var(--surface-2); border-radius:16px;}
+.score-num{font-family:"Baloo 2",sans-serif; font-size:46px; font-weight:700; line-height:1;}
+.score-num.good{color:var(--good);} .score-num.warn{color:var(--warn);} .score-num.bad{color:var(--bad);}
+.verdict-pill{display:inline-block; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; padding:4px 10px; border-radius:999px;}
+.verdict-pill.good{background:var(--good-soft); color:var(--good);}
+.verdict-pill.warn{background:var(--warn-soft); color:var(--warn);}
+.verdict-pill.bad{background:var(--bad-soft); color:var(--bad);}
+.you-said{font-size:13px; color:var(--text-dim); margin-top:6px;}
+.reveal{padding:16px 0; border-bottom:1px solid var(--border); margin-top:4px;}
+.reveal .sc{margin-bottom:6px;}
+.reveal .dx{font-family:"Baloo 2",sans-serif; font-size:18px; font-weight:700; color:var(--accent);}
+.fb-block{padding:14px 0; border-bottom:1px solid var(--border);}
+.fb-block h4{font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim); margin:0 0 7px; font-weight:700;}
+.fb-block p{margin:0; font-size:14.5px; line-height:1.55;}
+.flag-list{margin:0; padding-left:0; list-style:none; font-size:14.5px; line-height:1.6;}
+.flag-list li{display:flex; gap:8px;}
+.flag-list li::before{content:"\2014"; color:var(--bad); flex:none;}
+.outcome{padding:16px 16px; font-size:14.5px; line-height:1.6; background:var(--accent-soft); border-radius:14px; margin-top:4px;}
+.outcome .sc{display:block; margin-bottom:6px; color:var(--accent);}
+
+/* ---- quiz ---- */
+.quiz-top{display:flex; justify-content:space-between; align-items:center;}
+.quiz-q{font-family:"Baloo 2",sans-serif; font-size:20px; font-weight:700; line-height:1.35; margin:18px 0;}
+.quiz-opt{display:flex; justify-content:space-between; align-items:center; width:100%; text-align:left; border:2px solid var(--border); border-radius:16px; padding:13px 16px; font-size:14.5px; font-weight:600; background:#fff; cursor:pointer; margin-bottom:10px;}
+.quiz-opt.correct{border-color:var(--good); background:var(--good-soft);}
+.quiz-opt.wrong{border-color:var(--bad); background:var(--bad-soft);}
+.quiz-opt:disabled{cursor:default;}
+.quiz-explain{background:var(--surface-2); border-radius:14px; padding:14px; font-size:13.5px; color:var(--text-dim); line-height:1.55; margin-top:6px;}
+.quiz-score{font-family:"Baloo 2",sans-serif; font-size:54px; font-weight:700; text-align:center;}
+
+.intro{min-height:40vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:14px;}
+.spinner{width:24px;height:24px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--accent);animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.intro .status{color:var(--text-dim); font-size:14px;}
+
+@media (max-width:620px){
+  .score-row{flex-direction:column; align-items:flex-start;}
+}
+
+/* ================= marketing gate ================= */
+.gate{background:#fff;}
+.grad-text{background:linear-gradient(90deg,#2563eb,#7c3aed); -webkit-background-clip:text; background-clip:text; color:transparent;}
+.grad-btn{background:linear-gradient(90deg,#2563eb,#7c3aed); color:#fff; border:none;}
+.grad-divider{height:1px; background:linear-gradient(90deg, transparent, #2563eb, #7c3aed, transparent); border:none; margin:0;}
+.g-wrap{max-width:1080px; margin:0 auto; padding-left:max(20px, env(safe-area-inset-left,0px)); padding-right:max(20px, env(safe-area-inset-right,0px));}
+.g-nav{position:sticky; top:0; z-index:20; background:rgba(255,255,255,.82); backdrop-filter:blur(10px); border-bottom:1px solid var(--border);}
+.g-nav-inner{display:flex; align-items:center; justify-content:space-between; padding:16px 0;}
+.g-logo{display:flex; align-items:center; gap:9px; font-size:16px; font-weight:800;}
+.g-logo .dot{width:11px;height:11px;border-radius:4px; background:linear-gradient(135deg,#2563eb,#7c3aed);}
+.g-links{display:flex; align-items:center; gap:28px;}
+.g-links a{color:var(--text-dim); font-size:14px; font-weight:600; text-decoration:none; cursor:pointer;}
+.g-links a:hover{color:var(--text);}
+.g-actions{display:flex; align-items:center; gap:10px;}
+.btn-sm{padding:9px 18px; font-size:13.5px; border-radius:999px;}
+.g-mobile-toggle{display:none;}
+
+.g-hero{padding:72px 0 0; text-align:center; position:relative;}
+.g-hero::before{content:""; position:absolute; inset:0; height:520px; background-image:radial-gradient(circle, #e7ecf5 1.5px, transparent 1.5px); background-size:26px 26px; -webkit-mask-image:linear-gradient(to bottom, black, transparent); mask-image:linear-gradient(to bottom, black, transparent); z-index:0;}
+.g-hero > *{position:relative; z-index:1;}
+.g-kicker{display:inline-flex; align-items:center; gap:8px; background:var(--accent-soft); color:var(--accent); padding:6px 14px; border-radius:999px; font-size:12.5px; font-weight:700;}
+.g-kicker .d{width:6px;height:6px;border-radius:50%; background:var(--good);}
+.g-hero h1{font-size:clamp(34px,6.4vw,58px); line-height:1.08; margin:22px auto 18px; max-width:760px; text-wrap:balance;}
+.g-hero p.g-lede{color:var(--text-dim); font-size:17px; line-height:1.6; max-width:540px; margin:0 auto 28px;}
+.g-hero-ctas{display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-bottom:16px;}
+.g-fine{font-size:12.5px; color:var(--text-dim); margin:0 0 50px;}
+
+.mock-card{max-width:860px; margin:0 auto 90px; border-radius:22px; border:1px solid var(--border); background:#fff; box-shadow:0 30px 60px -30px rgba(15,23,42,.25); overflow:hidden;}
+.mock-chrome{display:flex; align-items:center; gap:7px; padding:12px 16px; border-bottom:1px solid var(--border); background:var(--surface-2);}
+.mock-chrome .mdot{width:9px;height:9px;border-radius:50%; background:#e2e8f0;}
+.mock-crumb{margin-left:8px; font-size:12px; color:var(--text-dim); font-family:"IBM Plex Mono",monospace;}
+.mock-body{padding:26px; display:flex; flex-direction:column; gap:20px;}
+.mock-path{display:flex; gap:26px; overflow-x:auto; padding:6px 2px;}
+.mock-node-wrap{display:flex; flex-direction:column; align-items:center; gap:6px; flex:none;}
+.mock-node{width:42px;height:42px;border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-family:"Baloo 2",sans-serif; font-weight:700; font-size:13px; box-shadow:0 2px 0 rgba(0,0,0,.14);}
+.mock-node-label{font-size:10.5px; font-weight:600; color:var(--text-dim);}
+.mock-divider2{height:1px; background:var(--border);}
+.mock-feedback{display:flex; align-items:center; gap:14px; background:var(--good-soft); border-radius:14px; padding:14px 16px;}
+.mock-feedback .mscore{font-family:"Baloo 2",sans-serif; font-size:28px; font-weight:700; color:var(--good);}
+.mock-feedback .mtxt .m1{font-size:13.5px; font-weight:700;}
+.mock-feedback .mtxt .m2{font-size:12px; color:var(--text-dim);}
+
+.g-section{padding:70px 0;}
+.g-section.tight{padding:40px 0 70px;}
+.g-head{max-width:560px; margin:0 0 36px;}
+.g-head.center{margin:0 auto 44px; text-align:center;}
+.g-head h2{font-size:clamp(24px,4vw,32px); margin:12px 0 10px; text-wrap:balance;}
+.g-head p{color:var(--text-dim); font-size:15px; line-height:1.6; margin:0;}
+
+.step-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px;}
+.step-card2{border:1px solid var(--border); border-radius:18px; padding:22px;}
+.step-card2 .n{display:inline-flex; width:28px;height:28px; align-items:center; justify-content:center; border-radius:9px; background:var(--accent-soft); color:var(--accent); font-family:"Baloo 2",sans-serif; font-weight:700; font-size:13px;}
+.step-card2 h4{font-size:16px; margin:14px 0 6px;}
+.step-card2 p{font-size:13.5px; color:var(--text-dim); margin:0; line-height:1.5;}
+
+.g-track-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px;}
+.g-track-card{border-radius:22px; padding:26px; background:var(--accent-soft); border-bottom:5px solid var(--accent-dark); text-align:left; cursor:pointer;}
+.g-track-card h3{font-size:20px; margin:10px 0 6px;}
+.g-track-card p{color:var(--text-dim); font-size:13.5px; margin:0 0 16px; line-height:1.5;}
+
+.price-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; max-width:720px;}
+.price-card{border:1px solid var(--border); border-radius:22px; padding:28px; position:relative;}
+.price-card.featured{border-color:var(--accent); box-shadow:0 20px 40px -24px rgba(37,99,235,.35);}
+.price-card .badge{position:absolute; top:-12px; right:22px; background:var(--accent); color:#fff; font-size:10.5px; font-weight:700; padding:4px 10px; border-radius:999px;}
+.price-card h4{font-size:16px; margin:0 0 4px;}
+.price-card .amt{font-family:"Baloo 2",sans-serif; font-size:34px; font-weight:700; margin:10px 0 2px;}
+.price-card .amt span{font-size:14px; color:var(--text-dim); font-weight:600;}
+.price-card ul{list-style:none; margin:16px 0 20px; padding:0; display:flex; flex-direction:column; gap:9px;}
+.price-card li{font-size:13.5px; display:flex; gap:8px;}
+.price-card li::before{content:"\2713"; color:var(--good); font-weight:700;}
+
+.faq-item{border-bottom:1px solid var(--border); padding:16px 0;}
+.faq-item summary{cursor:pointer; font-weight:700; font-size:14.5px; list-style:none; display:flex; justify-content:space-between; align-items:center;}
+.faq-item summary::-webkit-details-marker{display:none;}
+.faq-item summary::after{content:"+"; color:var(--text-dim); font-size:18px;}
+.faq-item[open] summary::after{content:"\2212";}
+.faq-item p{color:var(--text-dim); font-size:13.5px; line-height:1.6; margin:10px 0 0;}
+
+.g-footer{border-top:1px solid var(--border); padding:30px 0; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;}
+.g-footer .f-disclaimer{font-size:12px; color:var(--text-dim); max-width:460px;}
+
+.reveal{opacity:0; transform:translateY(16px); transition:opacity .5s ease, transform .5s ease;}
+.reveal.visible{opacity:1; transform:none;}
+@media (prefers-reduced-motion: reduce){ .reveal{opacity:1; transform:none; transition:none;} }
+
+@media (max-width:760px){
+  .g-links{display:none;}
+  .g-hero{padding-top:52px;}
+  .mock-body{padding:18px;}
+}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+
+<div id="root"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var PASS_THRESHOLD = 3;
+  var STORAGE_KEY = "casebook_progress_v4";
+  var BUILDER_KEY = "casebook_builder_mode";
+
+  var UNITS = [
+    {key:"foundations", mono:"FN", label:"Foundations", color:"#475569",
+      hint:"a general-principles presentation spanning basic cell biology, genetics, pharmacology, or microbiology rather than one organ system"},
+    {key:"blood-immune", mono:"BI", label:"Blood & Immune", color:"#e11d48",
+      hint:"a hematologic or immune system presentation (anemia, a bleeding or clotting disorder, immunodeficiency, or an autoimmune/hypersensitivity condition)"},
+    {key:"cardiovascular", mono:"CV", label:"Cardiovascular", color:"#ea580c",
+      hint:"a cardiovascular presentation"},
+    {key:"respiratory", mono:"RS", label:"Respiratory", color:"#0284c7",
+      hint:"a respiratory presentation"},
+    {key:"renal", mono:"RU", label:"Renal & Urinary", color:"#059669",
+      hint:"a renal or urinary presentation"},
+    {key:"gi", mono:"GI", label:"Gastrointestinal", color:"#ca8a04",
+      hint:"a gastrointestinal presentation"},
+    {key:"msk", mono:"MS", label:"Musculoskeletal & Skin", color:"#7c3aed",
+      hint:"a musculoskeletal, skin, or soft-tissue presentation"},
+    {key:"nervous", mono:"NS", label:"Nervous System", color:"#4f46e5",
+      hint:"a neurological presentation, including the special senses"},
+    {key:"endocrine", mono:"EN", label:"Endocrine", color:"#c026d3",
+      hint:"an endocrine or metabolic presentation"},
+    {key:"reproductive", mono:"RP", label:"Reproductive", color:"#db2777",
+      hint:"a reproductive, obstetric, or breast presentation"},
+    {key:"behavioral", mono:"BH", label:"Behavioral Health", color:"#0d9488",
+      hint:"a behavioral health, psychiatric, or psychosocial presentation"},
+    {key:"multisystem", mono:"MX", label:"Multisystem", color:"#1e293b",
+      hint:"a multisystem presentation that draws on more than one organ system at once (a capstone case)"}
+  ];
+
+  var TRACKS = {
+    medicine: {
+      key:"medicine", label:"Medicine", shortDesc:"Interview a patient, order a workup, reach a diagnosis.",
+      bullets:["Interview an AI patient in character", "Order real labs and imaging", "Get graded like a board exam"],
+      subjectRole:"patient", subjectRoleCap:"Patient", professional:"clinician", scenarioNoun:"clinical case",
+      evidenceCategories:["Labs","Imaging","Bedside"],
+      conclusionLabel:"Diagnosis", actionLabel:"Treatment plan",
+      snapshotHint:"vitals such as blood pressure, heart rate, respiratory rate, temperature in Fahrenheit, and oxygen saturation - 4 to 5 short label/value pairs",
+      interviewToneHint:"a real patient describing symptoms - a little worried, cooperative, not medically trained",
+      gradingFocus:"whether the right workup was ordered and whether the treatment plan is sound",
+      tierLabel:"Step 1", tierSub:"Year 1-2 · Preclinical",
+      futureTiers:[{name:"Step 2 CK", sub:"Year 3-4 · Clinical rotations"},{name:"Step 3", sub:"Residency"}]
+    },
+    nursing: {
+      key:"nursing", label:"Nursing", shortDesc:"Assess a patient under your care, build a safe care plan.",
+      bullets:["Run a nursing assessment interview", "Prioritize safety first, every time", "Build a care plan that holds up"],
+      subjectRole:"patient", subjectRoleCap:"Patient", professional:"nurse", scenarioNoun:"nursing case",
+      evidenceCategories:["Vitals & monitoring","Assessment findings","Orders & labs"],
+      conclusionLabel:"Primary nursing diagnosis", actionLabel:"Care plan",
+      snapshotHint:"vitals and monitoring numbers such as blood pressure, heart rate, pain score out of 10, and oxygen saturation - 4 to 5 short label/value pairs",
+      interviewToneHint:"a real patient under nursing care, responding to comfort, safety and symptom questions, not medically trained",
+      gradingFocus:"correct prioritization (safety first) and whether the care plan follows sound nursing process",
+      tierLabel:"Fundamentals", tierSub:"Year 1 · Pre-licensure",
+      futureTiers:[{name:"Med-Surg", sub:"Year 2"},{name:"NCLEX Prep", sub:"Final year"}]
+    }
+  };
+  var TRACK_ORDER = ["medicine","nursing"];
+  var DIFFICULTIES = ["a straightforward, typical presentation","a moderately atypical presentation","a tricky presentation with a subtle twist or distractor"];
+
+  // Authored, clinically-reviewed reference case for every (track, unit) pair -
+  // 24 in total. This is the primary content students see; live AI generation
+  // is an explicit, separate "practice again" action layered on top of it.
+  var CASE_BANK = {
+    medicine: {
+      foundations: {
+        subjectName:"Derek Simmons", subjectSummary:"22-year-old college student",
+        presentingIssue:"agitation, sweating, and muscle twitching that started a few hours ago",
+        snapshotFacts:[{label:"BP",value:"150/95"},{label:"HR",value:"118"},{label:"RR",value:"22"},{label:"Temp",value:"101.8°F"},{label:"SpO2",value:"97%"}],
+        backgroundFacts:[
+          "Has been on sertraline (an antidepressant) for about 8 months for anxiety.",
+          "Took a migraine medication (a triptan) for the first time yesterday for a bad headache.",
+          "Feels 'jittery' and can't sit still, and his muscles keep twitching involuntarily.",
+          "Noticed his heart racing and has been sweating more than usual.",
+          "No illicit drug use that he'll admit to, denies alcohol today.",
+          "Mild diarrhea and nausea since this morning.",
+          "No history of a similar episode before.",
+          "Lives alone - his roommate called it in after noticing him acting strange."
+        ],
+        initialAssessment:"Agitated and diaphoretic, with intermittent myoclonic jerks in the lower extremities. Hyperreflexia and inducible clonus at the ankles bilaterally. Pupils dilated. Oriented but anxious.",
+        conclusion:"Serotonin syndrome",
+        conclusionOptions:["Serotonin syndrome","Neuroleptic malignant syndrome","Anticholinergic toxicity","Alcohol withdrawal"],
+        conclusionExplanation:"A serotonergic antidepressant combined with a triptan (both raise serotonin), producing autonomic instability, clonus/hyperreflexia, and agitation within hours, is the classic triad of serotonin syndrome. Neuroleptic malignant syndrome develops over days and causes rigidity rather than clonus, which points away from it here.",
+        keyConsiderations:["The recent combination of two serotonergic agents (an SSRI plus a triptan) is the key trigger to catch", "Clonus and hyperreflexia, not rigidity, distinguish this from neuroleptic malignant syndrome", "Untreated, this can progress to severe hyperthermia and rhabdomyolysis"],
+        evidenceItems:[
+          {id:"cbc", name:"CBC", category:"Labs", result:"Mild leukocytosis, WBC 11.5", significant:false},
+          {id:"cmp", name:"Comprehensive metabolic panel", category:"Labs", result:"Mild hyponatremia, otherwise unremarkable", significant:false},
+          {id:"ck", name:"Creatine kinase", category:"Labs", result:"650 U/L (mildly elevated)", significant:true},
+          {id:"tox-screen", name:"Urine toxicology screen", category:"Labs", result:"Negative for common drugs of abuse", significant:false},
+          {id:"ecg", name:"ECG", category:"Bedside", result:"Sinus tachycardia, no QT prolongation", significant:false},
+          {id:"temp-trend", name:"Temperature trend", category:"Bedside", result:"Trending up over the last 2 hours", significant:true},
+          {id:"med-rec", name:"Medication reconciliation", category:"Bedside", result:"Sertraline plus a triptan both taken within the last 24 hours", significant:true},
+          {id:"lfts", name:"Liver function tests", category:"Labs", result:"Within normal limits", significant:false}
+        ],
+        recommendedAction:"Stop the triptan and any other serotonergic agents, give supportive care with IV fluids and active cooling for hyperthermia, use benzodiazepines for agitation, and give cyproheptadine (a serotonin antagonist) if symptoms are moderate to severe. Monitor for rhabdomyolysis.",
+        goodOutcome:"With the offending drugs stopped and supportive care, Derek's symptoms resolve over the next 24 hours without complication.",
+        badOutcome:"If the interaction is missed and the triptan continued, his hyperthermia and rigidity could worsen into severe serotonin syndrome with seizures or rhabdomyolysis."
+      },
+      "blood-immune": {
+        subjectName:"Maya Chen", subjectSummary:"29-year-old graphic designer",
+        presentingIssue:"fatigue and feeling cold all the time for the past two months",
+        snapshotFacts:[{label:"BP",value:"108/68"},{label:"HR",value:"92"},{label:"RR",value:"16"},{label:"Temp",value:"97.8°F"},{label:"SpO2",value:"99%"}],
+        backgroundFacts:[
+          "Been unusually tired and gets short of breath climbing stairs, for about two months now.",
+          "Periods have been heavier and lasting longer than usual for the last several cycles.",
+          "Finds herself chewing on ice cubes almost every day, which she thinks is a weird habit.",
+          "Mostly vegetarian diet, doesn't eat much red meat.",
+          "Hasn't noticed any blood in her stool, no black or tarry stools.",
+          "Some mild headaches and feels like her hair has been thinning lately.",
+          "No significant past medical history and isn't on any medications.",
+          "No family history of blood disorders that she knows of."
+        ],
+        initialAssessment:"Conjunctival pallor noted. Mild resting tachycardia. Spoon-shaped nails (koilonychia) on inspection. No hepatosplenomegaly. Lungs clear, heart sounds normal aside from the tachycardia.",
+        conclusion:"Iron deficiency anemia",
+        conclusionOptions:["Iron deficiency anemia","Vitamin B12 deficiency anemia","Hypothyroidism","Anemia of chronic disease"],
+        conclusionExplanation:"Fatigue, pallor, koilonychia, ice craving (pica), and heavy menstrual bleeding point to iron deficiency anemia. The labs confirm a microcytic, hypochromic anemia with low ferritin and low serum iron alongside an elevated TIBC - the pattern of true iron deficiency rather than anemia of chronic disease.",
+        keyConsiderations:["Heavy menstrual bleeding as an ongoing, under-recognized source of blood loss", "Pica (ice craving) as a classic but often-missed sign of iron deficiency", "The degree of anemia should be checked against menstrual loss alone, with a low threshold to also rule out a GI source"],
+        evidenceItems:[
+          {id:"cbc", name:"CBC with indices", category:"Labs", result:"Hgb 9.2 g/dL, Hct 29%, MCV 72 fL (microcytic)", significant:true},
+          {id:"ferritin", name:"Ferritin", category:"Labs", result:"8 ng/mL (low)", significant:true},
+          {id:"iron-panel", name:"Iron panel", category:"Labs", result:"Serum iron low, TIBC elevated, transferrin saturation 6%", significant:true},
+          {id:"reticulocyte", name:"Reticulocyte count", category:"Labs", result:"0.8% (low-normal, blunted response)", significant:false},
+          {id:"tsh", name:"TSH", category:"Labs", result:"2.1 mIU/L (normal)", significant:false},
+          {id:"b12-folate", name:"Vitamin B12 and folate", category:"Labs", result:"Both within normal limits", significant:false},
+          {id:"stool-occult-blood", name:"Fecal occult blood test", category:"Labs", result:"Negative", significant:false},
+          {id:"pelvic-us", name:"Pelvic ultrasound", category:"Imaging", result:"Unremarkable uterus and ovaries, no fibroids", significant:false},
+          {id:"ecg", name:"ECG", category:"Bedside", result:"Sinus tachycardia, otherwise normal", significant:true}
+        ],
+        recommendedAction:"Start oral iron supplementation (e.g. ferrous sulfate) with vitamin C to aid absorption, give dietary counseling, and address the source of blood loss - gynecologic referral for the heavy menstrual bleeding, with a GI workup if the bleeding doesn't fully explain the degree of anemia. Recheck CBC and ferritin in 4 to 6 weeks.",
+        goodOutcome:"With iron repletion and management of her heavy periods, Maya's energy returns to normal over the following weeks and her labs normalize.",
+        badOutcome:"Left untreated, her anemia would likely worsen, deepening the fatigue and cardiac strain, and the underlying heavy bleeding would go unaddressed."
+      },
+      cardiovascular: {
+        subjectName:"Robert Calloway", subjectSummary:"58-year-old construction foreman",
+        presentingIssue:"crushing chest pain that started 45 minutes ago while climbing stairs",
+        snapshotFacts:[{label:"BP",value:"148/92"},{label:"HR",value:"102"},{label:"RR",value:"20"},{label:"Temp",value:"98.4°F"},{label:"SpO2",value:"95%"}],
+        backgroundFacts:[
+          "The pain is a 'crushing' pressure in the center of his chest, radiating down his left arm.",
+          "Broke out in a cold sweat right when the pain started.",
+          "Feels nauseated and a little short of breath.",
+          "Has high blood pressure and high cholesterol, takes medication for both but admits he skips doses.",
+          "Smokes about a pack of cigarettes a day, has for 30 years.",
+          "His father had a heart attack in his 50s.",
+          "No chest pain quite like this before, though he's had some exertional tightness the past few weeks he ignored.",
+          "Took one aspirin at home before coming in because his wife told him to."
+        ],
+        initialAssessment:"Diaphoretic and uncomfortable, clutching his chest. Heart sounds regular, no murmur. Lungs clear. No peripheral edema.",
+        conclusion:"ST-elevation myocardial infarction (STEMI)",
+        conclusionOptions:["ST-elevation myocardial infarction (STEMI)","Unstable angina","Acute pericarditis","Gastroesophageal reflux disease"],
+        conclusionExplanation:"Crushing substernal chest pain radiating to the left arm, with diaphoresis, nausea, and multiple cardiac risk factors (smoking, hypertension, hyperlipidemia, family history), plus ECG ST elevation and an elevated troponin, confirms an acute STEMI rather than a non-cardiac cause.",
+        keyConsiderations:["Time is muscle - rapid recognition and reperfusion (PCI) within the door-to-balloon window is critical", "A history of exertional chest tightness in the preceding weeks (unstable angina) that progressed to this event", "Multiple modifiable cardiac risk factors, including medication non-adherence, need addressing on discharge"],
+        evidenceItems:[
+          {id:"ecg", name:"ECG", category:"Bedside", result:"ST elevations in leads II, III, aVF consistent with inferior STEMI", significant:true},
+          {id:"troponin", name:"Troponin I", category:"Labs", result:"4.8 ng/mL (markedly elevated)", significant:true},
+          {id:"cbc", name:"CBC", category:"Labs", result:"Within normal limits", significant:false},
+          {id:"bmp", name:"Basic metabolic panel", category:"Labs", result:"Within normal limits", significant:false},
+          {id:"lipid-panel", name:"Lipid panel", category:"Labs", result:"LDL 165 mg/dL (elevated), HDL 32 mg/dL (low)", significant:true},
+          {id:"cxr", name:"Chest X-ray", category:"Imaging", result:"No acute infiltrate, normal cardiac silhouette", significant:false},
+          {id:"coags", name:"PT/INR", category:"Labs", result:"Within normal limits", significant:false},
+          {id:"bedside-echo", name:"Bedside echocardiogram", category:"Imaging", result:"Hypokinesis of the inferior wall", significant:true}
+        ],
+        recommendedAction:"Activate the cath lab for emergent percutaneous coronary intervention (PCI), give aspirin, a P2Y12 inhibitor, and anticoagulation per protocol, and start a high-intensity statin. Address smoking cessation and medication adherence on discharge.",
+        goodOutcome:"With timely PCI restoring blood flow, Robert recovers with minimal heart muscle damage and starts cardiac rehab.",
+        badOutcome:"Delayed recognition would mean more heart muscle dies, risking heart failure or a fatal arrhythmia."
+      },
+      respiratory: {
+        subjectName:"Linda Osei", subjectSummary:"67-year-old retired postal worker",
+        presentingIssue:"fever, cough with thick yellow sputum, and feeling short of breath for the past 3 days",
+        snapshotFacts:[{label:"BP",value:"128/80"},{label:"HR",value:"104"},{label:"RR",value:"24"},{label:"Temp",value:"102.6°F"},{label:"SpO2",value:"91%"}],
+        backgroundFacts:[
+          "Cough has been productive of yellow-green sputum for 3 days, worsening.",
+          "Felt fine until a 'bad cold' about a week ago that never really went away.",
+          "Has chills and feels achy all over.",
+          "Gets short of breath just walking to the bathroom now.",
+          "Has mild COPD, uses an inhaler occasionally.",
+          "No recent travel, no sick contacts that she knows of.",
+          "Hasn't had her pneumonia vaccine, isn't sure about her flu shot this year.",
+          "Lives alone, her daughter checks on her and brought her in today."
+        ],
+        initialAssessment:"Ill-appearing, using mild accessory muscles to breathe. Crackles heard over the right lower lung field. Dullness to percussion in that same area.",
+        conclusion:"Community-acquired pneumonia",
+        conclusionOptions:["Community-acquired pneumonia","Acute bronchitis","COPD exacerbation","Pulmonary embolism"],
+        conclusionExplanation:"Fever, productive cough, focal crackles and dullness over the right lower lobe, with a consolidation on chest X-ray and elevated inflammatory markers, is the classic picture of community-acquired pneumonia rather than bronchitis (no consolidation) or a COPD flare alone (which wouldn't explain the fever and focal findings).",
+        keyConsiderations:["Hypoxia (SpO2 91%) and her age put her at higher risk - assess severity to decide on admission", "Focal exam findings and consolidation point to a localized bacterial pneumonia rather than a diffuse process", "Vaccination status should be addressed once she recovers"],
+        evidenceItems:[
+          {id:"cxr", name:"Chest X-ray", category:"Imaging", result:"Right lower lobe consolidation", significant:true},
+          {id:"cbc", name:"CBC", category:"Labs", result:"WBC 15.8 with left shift", significant:true},
+          {id:"blood-cultures", name:"Blood cultures", category:"Labs", result:"Pending at time of evaluation", significant:false},
+          {id:"sputum-culture", name:"Sputum culture", category:"Labs", result:"Pending at time of evaluation", significant:false},
+          {id:"pulse-ox", name:"Pulse oximetry", category:"Bedside", result:"91% on room air, improves to 95% on 2L", significant:true},
+          {id:"bmp", name:"Basic metabolic panel", category:"Labs", result:"Mild acute kidney injury, creatinine slightly above baseline", significant:true},
+          {id:"procalcitonin", name:"Procalcitonin", category:"Labs", result:"Elevated, consistent with bacterial infection", significant:true},
+          {id:"flu-covid-panel", name:"Flu/COVID panel", category:"Labs", result:"Negative for influenza and COVID-19", significant:false}
+        ],
+        recommendedAction:"Start empiric antibiotics appropriate for community-acquired pneumonia, give supplemental oxygen to maintain SpO2 above 92%, and admit given her hypoxia, age, and renal findings. Reassess in 48 hours and address vaccination before discharge.",
+        goodOutcome:"With prompt antibiotics and oxygen support, Linda's fever and breathing improve over the next few days and she's discharged with a plan to catch up on vaccinations.",
+        badOutcome:"Without treatment, her hypoxia could worsen into respiratory failure, and the infection could progress to sepsis."
+      },
+      renal: {
+        subjectName:"Omar Haddad", subjectSummary:"41-year-old truck driver",
+        presentingIssue:"sudden severe pain in his right lower back and side that comes in waves",
+        snapshotFacts:[{label:"BP",value:"142/88"},{label:"HR",value:"98"},{label:"RR",value:"18"},{label:"Temp",value:"98.9°F"},{label:"SpO2",value:"99%"}],
+        backgroundFacts:[
+          "Pain started suddenly about 2 hours ago, comes in intense waves, radiates from his flank down into his groin.",
+          "Can't find a comfortable position, keeps pacing and shifting.",
+          "Nauseated, vomited once.",
+          "Noticed his urine looked pink-tinged this morning.",
+          "Doesn't drink much water during long drives, mostly coffee and energy drinks.",
+          "Had a kidney stone once before, about 5 years ago.",
+          "No fever or chills that he's noticed.",
+          "No recent trauma."
+        ],
+        initialAssessment:"Writhing in discomfort, unable to sit still. Significant right costovertebral angle tenderness. Abdomen soft, non-rigid, with mild right-sided tenderness and no rebound.",
+        conclusion:"Nephrolithiasis (kidney stone)",
+        conclusionOptions:["Nephrolithiasis (kidney stone)","Acute pyelonephritis","Appendicitis","Abdominal aortic aneurysm"],
+        conclusionExplanation:"Sudden-onset colicky flank pain radiating to the groin, with visible hematuria, a restless patient who can't find a comfortable position (classic for renal colic, versus the stillness of peritonitis), and a prior stone history, together with a stone seen on imaging, confirm nephrolithiasis.",
+        keyConsiderations:["The restless, pacing presentation (versus lying still) is a classic feature distinguishing renal colic from peritoneal irritation", "Fever would change management urgently, since an obstructed infected stone is a surgical emergency - its absence is reassuring but should be explicitly checked", "Poor fluid intake and a prior stone history are both modifiable risk factors to address"],
+        evidenceItems:[
+          {id:"urinalysis", name:"Urinalysis", category:"Labs", result:"Gross and microscopic hematuria, no nitrites or leukocyte esterase", significant:true},
+          {id:"ct-abdomen", name:"CT abdomen, non-contrast", category:"Imaging", result:"6mm stone at the right ureterovesical junction with mild hydronephrosis", significant:true},
+          {id:"bmp", name:"Basic metabolic panel", category:"Labs", result:"Creatinine mildly elevated above his baseline", significant:true},
+          {id:"cbc", name:"CBC", category:"Labs", result:"No leukocytosis", significant:false},
+          {id:"urine-culture", name:"Urine culture", category:"Labs", result:"Pending, no signs of infection on urinalysis", significant:false},
+          {id:"lactate", name:"Lactate", category:"Labs", result:"Normal", significant:false},
+          {id:"kub-xray", name:"KUB X-ray", category:"Imaging", result:"Radiopaque density consistent with the known stone", significant:false},
+          {id:"pain-score", name:"Pain score", category:"Bedside", result:"8/10, improved to 3/10 after analgesia", significant:false}
+        ],
+        recommendedAction:"Give IV fluids and analgesia (NSAIDs plus or minus opioids), use an alpha-blocker to help with stone passage since it's under 10mm, strain urine, and arrange urology follow-up. Admit only if there are signs of infection, intractable pain, or obstruction with worsening renal function.",
+        goodOutcome:"With pain control and medical expulsive therapy, Omar passes the stone within a couple of weeks and is counseled on hydration to prevent recurrence.",
+        badOutcome:"If an infected, obstructed stone were missed, he could develop urosepsis requiring emergency decompression."
+      },
+      gi: {
+        subjectName:"Dana Oyelaran", subjectSummary:"34-year-old warehouse supervisor",
+        presentingIssue:"sharp lower-right abdominal pain since last night",
+        snapshotFacts:[{label:"BP",value:"118/76"},{label:"HR",value:"98"},{label:"RR",value:"18"},{label:"Temp",value:"100.6°F"},{label:"SpO2",value:"98%"}],
+        backgroundFacts:[
+          "The pain started near the belly button yesterday evening and moved to the lower right side overnight.",
+          "Walking and coughing make the pain much worse.",
+          "Lost her appetite yesterday and felt a little nauseated, vomited once this morning.",
+          "No history of similar pain before.",
+          "Last normal period was two weeks ago, not pregnant as far as she knows.",
+          "No urinary symptoms, no diarrhea.",
+          "No prior abdominal surgeries.",
+          "Took some ibuprofen this morning which barely helped."
+        ],
+        initialAssessment:"Low-grade fever. Focal tenderness and guarding at McBurney's point with rebound tenderness. Bowel sounds mildly decreased. No flank tenderness.",
+        conclusion:"Acute appendicitis",
+        conclusionOptions:["Acute appendicitis","Ovarian cyst rupture","Gastroenteritis","Ectopic pregnancy"],
+        conclusionExplanation:"Periumbilical pain migrating to the right lower quadrant, anorexia, low-grade fever, and focal peritoneal signs at McBurney's point are the classic pattern. Supporting labs and imaging confirm an inflamed appendix rather than a gynecologic or urinary cause.",
+        keyConsiderations:["The migrating pain pattern is consistent with appendiceal inflammation", "Rebound tenderness suggests peritoneal irritation", "A rising fever could indicate progression toward perforation"],
+        evidenceItems:[
+          {id:"cbc", name:"CBC with differential", category:"Labs", result:"WBC 14.2 x10^9/L with neutrophil predominance", significant:true},
+          {id:"crp", name:"CRP", category:"Labs", result:"38 mg/L (elevated)", significant:true},
+          {id:"bmp", name:"Basic metabolic panel", category:"Labs", result:"Within normal limits", significant:false},
+          {id:"urinalysis", name:"Urinalysis", category:"Labs", result:"No blood, no nitrites, no leukocyte esterase", significant:false},
+          {id:"bhcg", name:"Urine hCG", category:"Labs", result:"Negative", significant:false},
+          {id:"lactate", name:"Lactate", category:"Labs", result:"1.1 mmol/L (normal)", significant:false},
+          {id:"ct-abdomen", name:"CT abdomen/pelvis with contrast", category:"Imaging", result:"Dilated, thick-walled appendix (9mm) with surrounding fat stranding, no free air", significant:true},
+          {id:"us-pelvis", name:"Pelvic ultrasound", category:"Imaging", result:"Uterus and ovaries unremarkable", significant:false},
+          {id:"ecg", name:"ECG", category:"Bedside", result:"Normal sinus rhythm", significant:false}
+        ],
+        recommendedAction:"Surgical consult for prompt laparoscopic appendectomy, IV fluids, empiric antibiotics, and analgesia while awaiting surgery; keep NPO.",
+        goodOutcome:"With timely surgery, Dana recovers uneventfully and is discharged within a day or two.",
+        badOutcome:"If the diagnosis is missed or delayed, the appendix is at real risk of rupture, leading to peritonitis and a far more complicated, dangerous surgery."
+      },
+      msk: {
+        subjectName:"Carla Jimenez", subjectSummary:"34-year-old hairstylist",
+        presentingIssue:"her right knee is hot, swollen, and too painful to bend or walk on",
+        snapshotFacts:[{label:"BP",value:"118/74"},{label:"HR",value:"110"},{label:"RR",value:"20"},{label:"Temp",value:"102.2°F"},{label:"SpO2",value:"98%"}],
+        backgroundFacts:[
+          "Knee pain and swelling came on quickly over about 24 hours.",
+          "The knee is warm to the touch and looks red compared to the other one.",
+          "Can barely tolerate anyone touching it, let alone bending it.",
+          "Had a small cut on that same knee from a fall about a week ago that she didn't think much of.",
+          "Feels feverish and generally unwell the last day.",
+          "No history of arthritis or gout.",
+          "No new sexual partners recently.",
+          "No IV drug use."
+        ],
+        initialAssessment:"Right knee is erythematous, warm, and markedly swollen with a visible effusion. Severe pain with any passive range of motion. Unable to bear weight on that leg.",
+        conclusion:"Septic arthritis",
+        conclusionOptions:["Septic arthritis","Gout flare","Reactive arthritis","Cellulitis without joint involvement"],
+        conclusionExplanation:"Acute monoarticular joint swelling with fever, severe pain on any movement of the joint, and a preceding skin break over that joint strongly suggests septic arthritis - a true orthopedic emergency - confirmed by purulent, bacteria-positive synovial fluid on arthrocentesis.",
+        keyConsiderations:["Severe pain with passive range of motion (not just weight-bearing) is a hallmark distinguishing septic arthritis from cellulitis alone", "A preceding skin break over the joint is a plausible portal of entry worth specifically asking about", "This needs emergent joint aspiration and likely surgical washout, not just antibiotics - delay risks permanent joint destruction"],
+        evidenceItems:[
+          {id:"joint-aspiration", name:"Joint aspiration", category:"Bedside", result:"Synovial fluid cloudy/purulent, WBC 65,000 with >90% neutrophils", significant:true},
+          {id:"gram-stain", name:"Synovial fluid gram stain", category:"Labs", result:"Gram-positive cocci in clusters seen", significant:true},
+          {id:"synovial-culture", name:"Synovial fluid culture", category:"Labs", result:"Pending, gram stain already suggestive of staphylococcus", significant:true},
+          {id:"cbc", name:"CBC", category:"Labs", result:"WBC 14,200 with neutrophilia", significant:true},
+          {id:"esr-crp", name:"ESR and CRP", category:"Labs", result:"Both markedly elevated", significant:true},
+          {id:"blood-cultures", name:"Blood cultures", category:"Labs", result:"Pending", significant:false},
+          {id:"knee-xray", name:"Knee X-ray", category:"Imaging", result:"Joint effusion, no fracture, no chondrocalcinosis", significant:false},
+          {id:"uric-acid", name:"Uric acid", category:"Labs", result:"Within normal limits", significant:false}
+        ],
+        recommendedAction:"Emergent orthopedic consult for joint aspiration and washout (arthrocentesis, possibly surgical irrigation and debridement), start empiric IV antibiotics covering staphylococcus after cultures are drawn, and monitor closely for sepsis.",
+        goodOutcome:"With prompt joint washout and antibiotics, Carla's infection clears and she regains full function of the knee with physical therapy.",
+        badOutcome:"Delayed treatment risks rapid cartilage destruction, permanent joint damage, and the infection spreading into the bloodstream."
+      },
+      nervous: {
+        subjectName:"Harold Whitfield", subjectSummary:"71-year-old retired accountant",
+        presentingIssue:"sudden weakness on his left side and slurred speech that started 40 minutes ago",
+        snapshotFacts:[{label:"BP",value:"172/98"},{label:"HR",value:"88"},{label:"RR",value:"18"},{label:"Temp",value:"98.2°F"},{label:"SpO2",value:"97%"}],
+        backgroundFacts:[
+          "Symptoms started suddenly while watching TV - his wife noticed his face drooping and speech slurring.",
+          "Left arm feels 'dead,' he can't lift it.",
+          "Has a history of atrial fibrillation but admits he sometimes forgets his blood thinner.",
+          "Has high blood pressure, not always well controlled.",
+          "No headache, no vision changes that he's mentioned.",
+          "Last known normal time was about 40 minutes before arrival, confirmed by his wife.",
+          "No recent trauma, no recent surgery.",
+          "His wife called 911 immediately once she noticed the facial droop."
+        ],
+        initialAssessment:"Left facial droop, left arm drift with no movement against gravity, mild left leg weakness, dysarthria. NIHSS calculated at 9. No visual field cut noted.",
+        conclusion:"Acute ischemic stroke",
+        conclusionOptions:["Acute ischemic stroke","Hemorrhagic stroke","Transient ischemic attack","Hypoglycemia"],
+        conclusionExplanation:"Sudden-onset focal neurologic deficits (facial droop, arm weakness, dysarthria) with a clear last-known-well time, a non-contrast CT showing no hemorrhage, and atrial fibrillation as a clear embolic source, support acute ischemic stroke; the absence of blood on CT and persisting symptoms argue against hemorrhage and a TIA respectively.",
+        keyConsiderations:["The last known well time is the single most important fact to establish immediately - it determines eligibility for thrombolysis and thrombectomy", "Atrial fibrillation with inconsistent anticoagulation use is a clear embolic source to identify", "A non-contrast CT must be done before any thrombolytic is given to rule out hemorrhage first"],
+        evidenceItems:[
+          {id:"ct-head", name:"CT head, non-contrast", category:"Imaging", result:"No acute hemorrhage, early ischemic changes in the right MCA territory", significant:true},
+          {id:"glucose", name:"Fingerstick glucose", category:"Bedside", result:"104 mg/dL (normal, rules out hypoglycemia mimicking stroke)", significant:true},
+          {id:"ecg", name:"ECG", category:"Bedside", result:"Atrial fibrillation with rapid ventricular response", significant:true},
+          {id:"cbc-coags", name:"CBC and coagulation studies", category:"Labs", result:"Platelets and INR within range for thrombolytic eligibility", significant:true},
+          {id:"ct-angiogram", name:"CT angiogram", category:"Imaging", result:"Large vessel occlusion of the right MCA", significant:true},
+          {id:"bmp", name:"Basic metabolic panel", category:"Labs", result:"Within normal limits", significant:false},
+          {id:"lipid-panel", name:"Lipid panel", category:"Labs", result:"LDL elevated", significant:false},
+          {id:"last-known-well", name:"Last known well time", category:"Bedside", result:"Confirmed 40 minutes prior to arrival by his wife", significant:true}
+        ],
+        recommendedAction:"Given he's within the thrombolysis window and has a large vessel occlusion, give IV thrombolysis if there are no contraindications and urgently transfer for mechanical thrombectomy. Manage blood pressure per acute stroke protocol and restart anticoagulation for his atrial fibrillation once safe.",
+        goodOutcome:"With timely thrombolysis and thrombectomy, Harold regains most of his strength and speech over the following days.",
+        badOutcome:"Delay beyond the treatment window would mean permanent brain tissue death and likely lasting paralysis and speech impairment."
+      },
+      endocrine: {
+        subjectName:"Priya Nair", subjectSummary:"19-year-old college sophomore",
+        presentingIssue:"nausea, vomiting, and deep, rapid breathing that started overnight",
+        snapshotFacts:[{label:"BP",value:"102/64"},{label:"HR",value:"118"},{label:"RR",value:"32"},{label:"Temp",value:"99.1°F"},{label:"SpO2",value:"98%"}],
+        backgroundFacts:[
+          "Has type 1 diabetes, diagnosed at age 10.",
+          "Has been sick with a stomach bug the past 2 days, hasn't been able to keep food down.",
+          "Stopped taking her insulin because she 'wasn't eating anyway' and worried about going low.",
+          "Extremely thirsty and has been urinating constantly.",
+          "Her roommate says her breath smells fruity.",
+          "Feels confused and exhausted, with diffuse abdominal pain.",
+          "No illicit substance use.",
+          "Her blood sugar at home this morning read 'HIGH' on her meter - unreadable, too high."
+        ],
+        initialAssessment:"Lethargic but arousable, with a Kussmaul (deep, labored) breathing pattern and fruity breath odor. Dry mucous membranes, skin tenting. Diffuse mild abdominal tenderness, no rebound.",
+        conclusion:"Diabetic ketoacidosis (DKA)",
+        conclusionOptions:["Diabetic ketoacidosis (DKA)","Hyperosmolar hyperglycemic state","Gastroenteritis with dehydration","Alcoholic ketoacidosis"],
+        conclusionExplanation:"A type 1 diabetic who stopped insulin during an illness, presenting with Kussmaul respirations, fruity breath, severe hyperglycemia, an anion gap metabolic acidosis, and positive ketones, is the classic presentation of diabetic ketoacidosis - sick-day insulin omission is the precipitant to catch.",
+        keyConsiderations:["Insulin omission during illness (not following the 'sick day rule') is the key trigger to identify and educate on", "Kussmaul breathing and fruity breath are classic exam findings pointing straight to DKA", "Fluid resuscitation should start before insulin to avoid worsening hypotension, and potassium must be checked before starting insulin since it can drop rapidly"],
+        evidenceItems:[
+          {id:"glucose", name:"Serum glucose", category:"Labs", result:"612 mg/dL", significant:true},
+          {id:"vbg", name:"Venous blood gas", category:"Labs", result:"pH 7.12, bicarbonate 9 mEq/L", significant:true},
+          {id:"anion-gap", name:"Anion gap", category:"Labs", result:"Calculated anion gap 28 (elevated)", significant:true},
+          {id:"serum-ketones", name:"Serum ketones", category:"Labs", result:"Strongly positive", significant:true},
+          {id:"bmp", name:"Basic metabolic panel", category:"Labs", result:"Potassium 5.2 mEq/L (deceptively normal/high despite total body depletion), creatinine mildly elevated", significant:true},
+          {id:"urinalysis", name:"Urinalysis", category:"Labs", result:"Large ketones, glucosuria", significant:true},
+          {id:"cbc", name:"CBC", category:"Labs", result:"Mild leukocytosis from the stress response", significant:false},
+          {id:"ecg", name:"ECG", category:"Bedside", result:"No peaked T waves, no arrhythmia currently", significant:false}
+        ],
+        recommendedAction:"Start aggressive IV isotonic fluid resuscitation first, begin an insulin infusion once potassium is confirmed adequate (supplementing potassium if it starts to drop), and monitor glucose, electrolytes, and the anion gap closely until the gap closes. Educate on sick-day insulin management before discharge.",
+        goodOutcome:"With fluids, insulin, and close monitoring, Priya's acidosis resolves over the next 24 hours and she's counseled on never stopping insulin during illness.",
+        badOutcome:"Without prompt treatment, severe DKA can progress to cerebral edema, arrhythmia from electrolyte shifts, or death."
+      },
+      reproductive: {
+        subjectName:"Jasmine Torres", subjectSummary:"27-year-old retail manager",
+        presentingIssue:"sharp one-sided lower abdominal pain and some spotting, her period is 2 weeks late",
+        snapshotFacts:[{label:"BP",value:"98/60"},{label:"HR",value:"112"},{label:"RR",value:"20"},{label:"Temp",value:"98.0°F"},{label:"SpO2",value:"99%"}],
+        backgroundFacts:[
+          "Last normal period was about 6-7 weeks ago - later than usual for her.",
+          "Sharp, one-sided lower abdominal pain started a few hours ago, getting worse.",
+          "Light vaginal spotting, not a full period.",
+          "Felt briefly dizzy and lightheaded when she stood up earlier.",
+          "Took a home pregnancy test this morning that was positive.",
+          "Has a history of pelvic inflammatory disease a couple of years ago.",
+          "No known IUD in place.",
+          "Mentions some shoulder-tip pain almost in passing."
+        ],
+        initialAssessment:"Appears uncomfortable with mild pallor. Abdomen has localized right lower quadrant tenderness and mild guarding, no rebound yet. Orthostatic vital sign changes noted on standing.",
+        conclusion:"Ectopic pregnancy",
+        conclusionOptions:["Ectopic pregnancy","Ovarian cyst rupture","Normal early intrauterine pregnancy with a subchorionic bleed","Miscarriage (spontaneous abortion)"],
+        conclusionExplanation:"A positive pregnancy test with one-sided pelvic pain, vaginal spotting, orthostatic symptoms suggesting internal bleeding, referred shoulder-tip pain, a prior history of PID (a risk factor for ectopic), and no intrauterine pregnancy seen on ultrasound despite a positive hCG, together confirm an ectopic pregnancy until proven otherwise.",
+        keyConsiderations:["Any pregnant patient with pain and bleeding must have an ectopic ruled out before anything else - this is a life-threatening emergency if ruptured", "Shoulder-tip pain and orthostatic vital signs are subtle but important signs of intra-abdominal bleeding", "Prior PID is a major risk factor for ectopic pregnancy that should prompt heightened suspicion"],
+        evidenceItems:[
+          {id:"urine-hcg", name:"Urine hCG", category:"Labs", result:"Positive", significant:true},
+          {id:"quant-hcg", name:"Quantitative hCG", category:"Labs", result:"1,800 mIU/mL (lower than expected for gestational age, concerning for ectopic)", significant:true},
+          {id:"pelvic-us", name:"Pelvic ultrasound", category:"Imaging", result:"No intrauterine pregnancy seen, right adnexal mass with free fluid in the pelvis", significant:true},
+          {id:"cbc", name:"CBC", category:"Labs", result:"Hemoglobin 10.2 g/dL, down from a baseline around 13", significant:true},
+          {id:"type-screen", name:"Type and screen", category:"Labs", result:"O negative, antibody screen negative", significant:true},
+          {id:"orthostatics", name:"Orthostatic vital signs", category:"Bedside", result:"Significant heart rate increase and blood pressure drop on standing", significant:true},
+          {id:"bmp", name:"Basic metabolic panel", category:"Labs", result:"Within normal limits", significant:false},
+          {id:"pelvic-exam", name:"Pelvic exam notes", category:"Bedside", result:"Cervical motion tenderness present, no active heavy bleeding visualized", significant:true}
+        ],
+        recommendedAction:"Obtain emergent OB/GYN consultation for likely surgical or methotrexate management depending on stability and ultrasound findings, give Rh immunoglobulin since she's Rh-negative, and monitor closely for signs of rupture and hemorrhagic shock.",
+        goodOutcome:"With prompt OB/GYN intervention, Jasmine is treated before rupture and recovers well, with counseling on future pregnancy risk.",
+        badOutcome:"If rupture occurs before treatment, she could develop life-threatening internal hemorrhage requiring emergency surgery."
+      },
+      behavioral: {
+        subjectName:"Evan Brooks", subjectSummary:"24-year-old warehouse associate",
+        presentingIssue:"feeling down, exhausted, and unmotivated for the past several weeks",
+        snapshotFacts:[{label:"BP",value:"118/76"},{label:"HR",value:"72"},{label:"Sleep",value:"~4-5 hrs/night"},{label:"Appetite",value:"Decreased"},{label:"Energy",value:"Very low"}],
+        backgroundFacts:[
+          "Has felt persistently sad and 'empty' for about 6 weeks, most of the day nearly every day.",
+          "Lost interest in things he used to enjoy, like gaming with friends.",
+          "Trouble sleeping, waking up around 4am and unable to fall back asleep.",
+          "Appetite is down, has lost some weight without trying.",
+          "Feels like a burden to his family lately and has trouble concentrating at work.",
+          "No prior mental health diagnoses or treatment.",
+          "Drinks a couple of beers most nights, more than he used to.",
+          "When asked directly, admits to passive thoughts that 'things would be easier if he weren't around,' but denies any specific plan or intent to act on it, and says he wouldn't do that to his family."
+        ],
+        initialAssessment:"Appears fatigued with a flat affect, makes appropriate eye contact. Cooperative and forthcoming when asked directly about safety. No evidence of psychosis or agitation.",
+        conclusion:"Major depressive disorder with passive suicidal ideation, no plan or intent",
+        conclusionOptions:["Major depressive disorder with passive suicidal ideation, no plan or intent","Adjustment disorder with depressed mood","Normal grief reaction","Substance-induced mood disorder"],
+        conclusionExplanation:"At least two weeks (here, six) of depressed mood, anhedonia, sleep and appetite changes, fatigue, and feelings of worthlessness meet criteria for a major depressive episode. The passive death wish without plan or intent is important to document and monitor but does not by itself indicate imminent risk requiring an involuntary hold, provided protective factors and follow-up are in place.",
+        keyConsiderations:["Directly and specifically asking about suicidal thoughts, plan, and intent is essential, and was the key step here", "Increased alcohol use may be a form of self-medication and is a relevant risk factor to address", "A concrete follow-up and safety plan is necessary even though there is no active plan or intent right now"],
+        evidenceItems:[
+          {id:"phq9", name:"PHQ-9 screening", category:"Bedside", result:"Score 19 (moderately severe depression)", significant:true},
+          {id:"safety-screen", name:"Suicide risk screen", category:"Bedside", result:"Passive ideation present, denies plan, intent, or access concerns; identifies family as a protective factor", significant:true},
+          {id:"tsh", name:"TSH", category:"Labs", result:"Within normal limits, rules out a thyroid cause of mood symptoms", significant:false},
+          {id:"cbc", name:"CBC", category:"Labs", result:"Within normal limits", significant:false},
+          {id:"substance-screen", name:"Substance use screen", category:"Bedside", result:"Reports increased alcohol use, no other substances", significant:true},
+          {id:"b12-folate", name:"Vitamin B12 and folate", category:"Labs", result:"Within normal limits", significant:false},
+          {id:"sleep-history", name:"Sleep history", category:"Bedside", result:"Early morning awakening, non-restorative sleep", significant:true},
+          {id:"support-assessment", name:"Social support assessment", category:"Bedside", result:"Lives with supportive family, hasn't disclosed his symptoms to them yet", significant:true}
+        ],
+        recommendedAction:"Develop a collaborative safety plan, strongly encourage him to tell a trusted family member, start therapy (e.g., CBT) and consider an antidepressant, address his increasing alcohol use, and arrange close follow-up within a week rather than an immediate involuntary hold, given no plan, intent, or access concerns.",
+        goodOutcome:"With treatment and support, Evan's mood and sleep gradually improve over the following weeks, and he feels comfortable confiding in his family.",
+        badOutcome:"Without a safety plan and follow-up, worsening isolation and continued drinking could increase his risk over time."
+      },
+      multisystem: {
+        subjectName:"Gloria Martinez", subjectSummary:"74-year-old nursing home resident, brought in by facility staff",
+        presentingIssue:"increasing confusion and weakness over the past day, with a new fever",
+        snapshotFacts:[{label:"BP",value:"88/54"},{label:"HR",value:"122"},{label:"RR",value:"26"},{label:"Temp",value:"102.8°F"},{label:"SpO2",value:"93%"}],
+        backgroundFacts:[
+          "Facility staff noticed she was more confused than her baseline starting yesterday.",
+          "Has a history of a urinary catheter placed 2 weeks ago for urinary retention.",
+          "Family reports she's 'not herself,' unusually sleepy and hard to rouse at times.",
+          "Decreased oral intake over the past day.",
+          "History of diabetes and mild dementia at baseline.",
+          "No reported falls or injury.",
+          "Urine in her catheter bag appears cloudy and foul-smelling per staff report.",
+          "No known allergies."
+        ],
+        initialAssessment:"Lethargic, oriented only to person (new from her baseline of oriented x3). Skin warm and flushed. Cloudy, foul-smelling urine visible in the catheter bag. Mild diffuse suprapubic tenderness.",
+        conclusion:"Sepsis secondary to catheter-associated urinary tract infection",
+        conclusionOptions:["Sepsis secondary to catheter-associated urinary tract infection","Dehydration from poor oral intake","Progression of baseline dementia","Stroke"],
+        conclusionExplanation:"A source of infection (foul, cloudy catheter urine), new confusion, fever, tachycardia, tachypnea, and hypotension together meet criteria for sepsis with a urinary source. Her altered mental status and hypotension indicate this has progressed beyond a simple UTI and needs urgent systemic treatment, not just reassurance about her baseline dementia.",
+        keyConsiderations:["New confusion in an elderly patient is often the first sign of sepsis and is easy to misattribute to baseline dementia", "An indwelling catheter is a clear, identifiable, and often preventable source of infection", "Hypotension plus a likely infection source meets criteria for sepsis requiring urgent fluids, cultures, and antibiotics within the hour"],
+        evidenceItems:[
+          {id:"lactate", name:"Lactate", category:"Labs", result:"3.8 mmol/L (elevated)", significant:true},
+          {id:"blood-cultures", name:"Blood cultures", category:"Labs", result:"Pending, drawn before antibiotics", significant:false},
+          {id:"urinalysis", name:"Urinalysis", category:"Labs", result:"Positive for leukocyte esterase, nitrites, and bacteria", significant:true},
+          {id:"urine-culture", name:"Urine culture", category:"Labs", result:"Pending", significant:false},
+          {id:"cbc", name:"CBC", category:"Labs", result:"WBC 17,500 with left shift", significant:true},
+          {id:"bmp", name:"Basic metabolic panel", category:"Labs", result:"Acute kidney injury, creatinine above her baseline", significant:true},
+          {id:"bp-trend", name:"Blood pressure trend", category:"Bedside", result:"Persistently low despite rest", significant:true},
+          {id:"cxr", name:"Chest X-ray", category:"Imaging", result:"No infiltrate, ruling out a pulmonary source", significant:false}
+        ],
+        recommendedAction:"Begin sepsis bundle care immediately: draw blood cultures, give broad-spectrum IV antibiotics within the hour, start IV fluid resuscitation, replace the catheter, and monitor closely for the need for vasopressors if she doesn't respond to fluids. Escalate to a higher level of care given her instability.",
+        goodOutcome:"With prompt sepsis treatment, Gloria's mental status and vital signs improve over the next 48 hours and the catheter-related infection resolves.",
+        badOutcome:"Delayed recognition - especially if her confusion were dismissed as 'just her dementia' - could allow progression to septic shock and organ failure."
+      }
+    },
+    nursing: {
+      foundations: {
+        subjectName:"Arthur Kess", subjectSummary:"69-year-old, newly admitted for pneumonia",
+        presentingIssue:"mild confusion about which of his home medications he's supposed to be taking here",
+        snapshotFacts:[{label:"BP",value:"134/82"},{label:"HR",value:"88"},{label:"RR",value:"18"},{label:"SpO2",value:"95% on 2L"},{label:"Pain",value:"2/10"}],
+        backgroundFacts:[
+          "Takes 9 different medications at home for his heart, blood pressure, diabetes, and cholesterol.",
+          "Isn't totally sure of all the doses, says 'my wife usually handles the pill box.'",
+          "Mentions he sometimes takes an extra blood pressure pill 'if it feels high' on his own.",
+          "Brought a bag of his home medication bottles, several look old or have unclear labels.",
+          "Allergic to penicillin, breaks out in hives - this isn't clearly documented in the chart yet.",
+          "Ran out of one of his heart medications about 4 days ago and hasn't been able to refill it.",
+          "Mild hearing difficulty, sometimes needs questions repeated.",
+          "Appreciates when things are explained slowly and written down."
+        ],
+        initialAssessment:"Alert and cooperative, with mild hearing impairment noted. Home medication bottles present but incomplete and inconsistent with the admission orders. Penicillin allergy not yet documented in the chart.",
+        conclusion:"Risk for medication error due to incomplete medication reconciliation",
+        conclusionOptions:["Risk for medication error due to incomplete medication reconciliation","Risk for injury related to confusion","Deficient knowledge related to new diagnosis","Noncompliance with medication regimen"],
+        conclusionExplanation:"An incomplete medication list, an undocumented allergy, a missed home medication, and the patient's own uncertainty about his regimen together create a real risk for a medication error on admission. The nursing priority is a thorough reconciliation and allergy documentation before any new orders are given, not simply labeling him as confused or noncompliant.",
+        keyConsiderations:["An undocumented penicillin allergy is a patient-safety issue that must be corrected immediately, before any antibiotic is given", "A 4-day gap in a home heart medication could have clinical consequences that need to be flagged to the provider", "His hearing impairment means teaching needs to be adapted (face him, speak clearly, provide written materials) for reconciliation to actually be effective"],
+        evidenceItems:[
+          {id:"home-med-list", name:"Home medication list review", category:"Assessment findings", result:"Incomplete, several bottles unlabeled or expired", significant:true},
+          {id:"allergy-check", name:"Allergy verification", category:"Assessment findings", result:"Penicillin allergy (hives) confirmed verbally, not yet in the chart", significant:true},
+          {id:"pharmacy-consult", name:"Pharmacy consult", category:"Orders & labs", result:"Requested to help verify home regimen", significant:false},
+          {id:"vitals-trend", name:"Vital signs trend", category:"Vitals & monitoring", result:"Stable, within normal limits for admission", significant:false},
+          {id:"cognitive-screen", name:"Cognitive screen", category:"Assessment findings", result:"Alert and oriented x4, no cognitive impairment identified", significant:false},
+          {id:"hearing-assessment", name:"Hearing assessment", category:"Assessment findings", result:"Mild hearing difficulty noted, no hearing aids used", significant:true},
+          {id:"missed-dose-history", name:"Missed dose history", category:"Assessment findings", result:"Ran out of a home cardiac medication 4 days ago", significant:true},
+          {id:"hr-rhythm", name:"Heart rhythm check", category:"Vitals & monitoring", result:"Regular, no acute changes noted", significant:false}
+        ],
+        recommendedAction:"Document the penicillin allergy immediately and alert the provider, complete a full medication reconciliation with pharmacy support, clarify the gap in his cardiac medication with the provider, and adapt patient teaching for his hearing impairment (face-to-face, written instructions).",
+        goodOutcome:"With a corrected allergy record and complete reconciliation, Arthur's hospital course proceeds safely with no medication errors.",
+        badOutcome:"Without catching the allergy gap, he could be given a penicillin-based antibiotic and have a serious allergic reaction."
+      },
+      "blood-immune": {
+        subjectName:"Jamal Reese", subjectSummary:"23-year-old graduate student",
+        presentingIssue:"severe pain in his back, legs, and chest that started overnight",
+        snapshotFacts:[{label:"BP",value:"128/78"},{label:"HR",value:"112"},{label:"RR",value:"22"},{label:"Temp",value:"100.4°F"},{label:"Pain",value:"9/10"}],
+        backgroundFacts:[
+          "Has sickle cell disease, diagnosed at birth, has had pain crises before.",
+          "This pain feels similar to past crises but worse - '9 out of 10.'",
+          "Got dehydrated over the weekend, didn't drink much water while studying for exams.",
+          "Also had a mild cold the past couple of days, which has triggered crises before.",
+          "Takes hydroxyurea at home but admits he's missed several doses while stressed with finals.",
+          "No chest pain that's new or different from his usual pattern.",
+          "Knows his own effective pain medication regimen from past admissions.",
+          "Worried about being seen as 'drug-seeking' by staff, which has happened before and made him hesitant to come in."
+        ],
+        initialAssessment:"Alert, grimacing and guarding, holding very still due to pain. No increased work of breathing. Lungs clear bilaterally, no new chest pain on exam.",
+        conclusion:"Vaso-occlusive sickle cell pain crisis",
+        conclusionOptions:["Vaso-occlusive sickle cell pain crisis","Acute chest syndrome","Deep vein thrombosis","Opioid-seeking behavior"],
+        conclusionExplanation:"A known sickle cell patient with a typical pain pattern triggered by dehydration and a viral illness, with no new chest findings or hypoxia (which would raise concern for the medical emergency of acute chest syndrome), is a vaso-occlusive pain crisis. The nursing priority is aggressive, trusted pain management and hydration, not skepticism about his pain report.",
+        keyConsiderations:["Patients with sickle cell disease are often undertreated for pain due to bias - believing his self-report and his known effective regimen is a key nursing action", "New or worsening chest pain, fever, or hypoxia would need urgent evaluation for acute chest syndrome, which was specifically screened for and is currently absent", "Missed hydroxyurea doses and dehydration are identifiable, modifiable triggers to address in discharge teaching"],
+        evidenceItems:[
+          {id:"cbc", name:"CBC", category:"Orders & labs", result:"Hemoglobin 8.1 g/dL (at his known baseline), reticulocytosis present", significant:false},
+          {id:"pulse-ox", name:"Pulse oximetry", category:"Vitals & monitoring", result:"98% on room air", significant:true},
+          {id:"cxr", name:"Chest X-ray", category:"Orders & labs", result:"Clear, no infiltrate - reassuring against acute chest syndrome", significant:true},
+          {id:"pain-score-trend", name:"Pain score trend", category:"Vitals & monitoring", result:"9/10 at triage, reassessed after analgesia", significant:true},
+          {id:"iv-fluids", name:"IV fluids", category:"Orders & labs", result:"Isotonic IV fluids started for hydration", significant:false},
+          {id:"temp-trend", name:"Temperature trend", category:"Vitals & monitoring", result:"Low-grade fever, trending down", significant:false},
+          {id:"hydroxyurea-adherence", name:"Medication adherence history", category:"Assessment findings", result:"Admits missed doses over the past 2 weeks", significant:true},
+          {id:"retic-count", name:"Reticulocyte count", category:"Orders & labs", result:"Elevated, consistent with his chronic hemolysis", significant:false}
+        ],
+        recommendedAction:"Give scheduled, around-the-clock pain medication per his known effective regimen (not PRN-only), start IV hydration, apply warm compresses to affected areas, continue to monitor closely for any signs of acute chest syndrome, and reinforce hydroxyurea adherence and trigger-avoidance teaching before discharge.",
+        goodOutcome:"With prompt, adequate pain control and hydration, Jamal's crisis resolves over the next 2-3 days without complication.",
+        badOutcome:"Undertreated pain prolongs his crisis and distress, and missing early signs of acute chest syndrome could be life-threatening."
+      },
+      cardiovascular: {
+        subjectName:"Dorothy Yang", subjectSummary:"79-year-old retired librarian",
+        presentingIssue:"increasing shortness of breath and swollen legs over the past week",
+        snapshotFacts:[{label:"BP",value:"152/88"},{label:"HR",value:"96"},{label:"RR",value:"24"},{label:"SpO2",value:"90%"},{label:"Weight",value:"+4.5 kg from last visit"}],
+        backgroundFacts:[
+          "Has a history of heart failure, usually manages well on her medications.",
+          "Noticed her legs getting more swollen over the past week, shoes feel tight.",
+          "Has been sleeping propped up on 3 pillows because lying flat makes her feel breathless.",
+          "Woke up gasping for air a couple of nights this week.",
+          "Admits she's been eating more salty food lately at a family gathering.",
+          "Sometimes skips her water pill because it makes her need the bathroom too often when she's out.",
+          "Weighs herself most days but hasn't in the past week.",
+          "No chest pain, just the breathing and swelling."
+        ],
+        initialAssessment:"Mild respiratory distress, speaking in shortened sentences. Bilateral crackles at the lung bases. 2+ pitting edema to the mid-shin bilaterally. Jugular venous distension noted.",
+        conclusion:"Acute decompensated heart failure (fluid overload)",
+        conclusionOptions:["Acute decompensated heart failure (fluid overload)","Pneumonia","Pulmonary embolism","Chronic kidney disease progression"],
+        conclusionExplanation:"Weight gain, orthopnea, paroxysmal nocturnal dyspnea, bilateral crackles, jugular venous distension, and peripheral edema in a known heart failure patient who had dietary sodium indiscretion and diuretic non-adherence is a classic acute decompensation. The nursing priorities are diuresis, daily weights, and strict intake and output, not treating this as a new pulmonary infection.",
+        keyConsiderations:["A sudden weight gain of 4.5 kg is one of the most sensitive early indicators of fluid overload and should trigger action before symptoms even worsen", "Both dietary sodium indiscretion and diuretic non-adherence (due to inconvenience) are identifiable triggers to address with teaching", "Daily weights and strict intake and output monitoring are core nursing interventions, not just physician orders to carry out passively"],
+        evidenceItems:[
+          {id:"daily-weight", name:"Daily weight trend", category:"Vitals & monitoring", result:"+4.5 kg over one week", significant:true},
+          {id:"bnp", name:"BNP", category:"Orders & labs", result:"Markedly elevated above her known baseline", significant:true},
+          {id:"cxr", name:"Chest X-ray", category:"Orders & labs", result:"Pulmonary vascular congestion, small bilateral effusions", significant:true},
+          {id:"pulse-ox", name:"Pulse oximetry", category:"Vitals & monitoring", result:"90% on room air, improves with supplemental oxygen", significant:true},
+          {id:"bmp", name:"Basic metabolic panel", category:"Orders & labs", result:"Mild hyponatremia, renal function near baseline", significant:true},
+          {id:"lung-sounds", name:"Lung sound assessment", category:"Assessment findings", result:"Bibasilar crackles, unchanged after position change", significant:true},
+          {id:"intake-output", name:"Intake and output record", category:"Vitals & monitoring", result:"Positive fluid balance over the past several days per report", significant:true},
+          {id:"ecg", name:"ECG", category:"Orders & labs", result:"Sinus rhythm, no acute ischemic changes", significant:false}
+        ],
+        recommendedAction:"Administer IV diuretics as ordered, place her in a high-Fowler's position and give supplemental oxygen, start strict daily weights and intake/output monitoring, restrict sodium, and reinforce diuretic adherence and daily weight teaching before discharge.",
+        goodOutcome:"With diuresis and fluid monitoring, Dorothy's breathing and swelling improve over the next 2-3 days and she returns to her dry weight.",
+        badOutcome:"Untreated fluid overload can progress to pulmonary edema and respiratory failure."
+      },
+      respiratory: {
+        subjectName:"Melvin Ortiz", subjectSummary:"66-year-old retired machinist",
+        presentingIssue:"increased shortness of breath and more coughing than usual for the past 2 days",
+        snapshotFacts:[{label:"BP",value:"138/84"},{label:"HR",value:"102"},{label:"RR",value:"26"},{label:"SpO2",value:"88% (baseline 90-92%)"},{label:"Temp",value:"99.5°F"}],
+        backgroundFacts:[
+          "Has severe COPD, on home oxygen at 2L per nasal cannula normally.",
+          "Needed to use his rescue inhaler much more often the past 2 days.",
+          "Sputum has changed from clear to yellow-green and increased in amount.",
+          "Feels more fatigued, has to stop and rest more while walking.",
+          "Smoked for 35 years, quit 5 years ago.",
+          "Family turned his oxygen up to 4L at home today because he 'seemed more short of breath.'",
+          "No fever that he's noticed, though he hasn't checked.",
+          "Uses his home nebulizer but admits he sometimes runs out of medication before his refill date."
+        ],
+        initialAssessment:"Using accessory muscles to breathe, with pursed-lip breathing noted. Diffuse expiratory wheezes and diminished breath sounds throughout. Slightly drowsy but arousable and oriented.",
+        conclusion:"Acute COPD exacerbation",
+        conclusionOptions:["Acute COPD exacerbation","Acute asthma attack","Pneumonia","Anxiety-related hyperventilation"],
+        conclusionExplanation:"A known severe COPD patient with increased dyspnea, a change in sputum color and volume, and increased rescue inhaler use fits an acute exacerbation. The key nursing concern is that his family increased his home oxygen to 4L, which for a chronic CO2-retainer risks blunting his hypoxic drive and worsening carbon dioxide retention - this needs to be corrected, titrating oxygen to his usual target rather than simply giving more.",
+        keyConsiderations:["Oxygen should be titrated carefully to his prescribed target saturation, not maximized, because chronic CO2 retainers can develop worsening hypercapnia and drowsiness from over-oxygenation", "A change in sputum color and volume plus increased rescue inhaler use are the classic signs of an exacerbation to document", "His drowsiness needs a repeat arterial blood gas to check for CO2 retention before assuming it's just fatigue"],
+        evidenceItems:[
+          {id:"abg", name:"Arterial blood gas", category:"Orders & labs", result:"pH 7.30, pCO2 62 mmHg (elevated), consistent with CO2 retention", significant:true},
+          {id:"pulse-ox-trend", name:"Pulse oximetry trend", category:"Vitals & monitoring", result:"88% on room air, titrated carefully rather than maximized", significant:true},
+          {id:"cxr", name:"Chest X-ray", category:"Orders & labs", result:"Hyperinflated lungs, no new infiltrate", significant:false},
+          {id:"sputum-description", name:"Sputum description", category:"Assessment findings", result:"Increased volume, yellow-green color", significant:true},
+          {id:"cbc", name:"CBC", category:"Orders & labs", result:"No significant leukocytosis", significant:false},
+          {id:"peak-flow", name:"Peak flow / spirometry", category:"Assessment findings", result:"Reduced from his personal best", significant:false},
+          {id:"neb-response", name:"Nebulizer treatment response", category:"Assessment findings", result:"Mild improvement in wheeze after bronchodilator", significant:true},
+          {id:"home-o2-check", name:"Home oxygen flow check", category:"Assessment findings", result:"Family increased flow to 4L at home without provider guidance", significant:true}
+        ],
+        recommendedAction:"Titrate oxygen carefully back to his prescribed target saturation rather than maximizing flow, give bronchodilators and consider a short course of corticosteroids and antibiotics for a likely exacerbation, monitor his mental status and repeat blood gas, and teach the family about safe home oxygen use before discharge.",
+        goodOutcome:"With careful oxygen titration and bronchodilator therapy, Melvin's breathing improves without further CO2 retention.",
+        badOutcome:"If oxygen is simply maximized without monitoring, he could develop worsening hypercapnia, progressing to lethargy and respiratory failure."
+      },
+      renal: {
+        subjectName:"Harriet Dunmore", subjectSummary:"68-year-old, post-op day 1 from hip fracture repair",
+        presentingIssue:"hasn't urinated since before surgery and now has increasing lower abdominal discomfort",
+        snapshotFacts:[{label:"BP",value:"136/84"},{label:"HR",value:"92"},{label:"RR",value:"18"},{label:"Pain",value:"6/10 suprapubic"},{label:"Bladder scan",value:"480 mL"}],
+        backgroundFacts:[
+          "Had spinal anesthesia for her hip surgery yesterday, hasn't voided since before the procedure.",
+          "Says she feels like she needs to go but 'just can't.'",
+          "Has been on opioid pain medication since surgery, which she knows can make this harder.",
+          "Reports increasing lower abdominal pressure and discomfort over the last few hours.",
+          "No history of urinary problems before this.",
+          "No relevant urologic history otherwise.",
+          "Hasn't wanted to 'bother anyone' and tried to just wait it out in bed.",
+          "Limited mobility right now due to her hip precautions, can't easily get to the bathroom anyway."
+        ],
+        initialAssessment:"Visibly uncomfortable, with a palpable and distended bladder on abdominal exam, tender to palpation suprapubically. No fever. Alert and oriented.",
+        conclusion:"Acute urinary retention",
+        conclusionOptions:["Acute urinary retention","Urinary tract infection","Normal post-operative recovery","Constipation"],
+        conclusionExplanation:"Absence of voiding since before surgery, a palpably distended and tender bladder, and a bladder scan confirming a large retained volume, in the setting of spinal anesthesia and opioid use (both of which impair bladder emptying), confirms acute urinary retention - this needs prompt intervention (catheterization) rather than just waiting, both for her comfort and to prevent bladder injury.",
+        keyConsiderations:["Both spinal anesthesia and opioids are well-known causes of post-operative urinary retention and should be anticipated in post-op monitoring", "A bladder scan before catheterizing confirms the diagnosis and the volume, guiding the decision for prompt intervention", "She didn't want to 'bother anyone' - creating a comfortable environment for patients to report symptoms honestly is itself a nursing responsibility"],
+        evidenceItems:[
+          {id:"bladder-scan", name:"Bladder scan", category:"Assessment findings", result:"480 mL retained volume", significant:true},
+          {id:"abdominal-exam", name:"Abdominal exam", category:"Assessment findings", result:"Palpable, distended, tender suprapubic bladder", significant:true},
+          {id:"intake-output", name:"Intake and output record", category:"Vitals & monitoring", result:"No voids recorded since before surgery", significant:true},
+          {id:"vitals-trend", name:"Vital signs trend", category:"Vitals & monitoring", result:"Mildly elevated heart rate consistent with discomfort, otherwise stable", significant:false},
+          {id:"pain-med-record", name:"Pain medication record", category:"Orders & labs", result:"Opioids given on a scheduled basis since surgery", significant:true},
+          {id:"anesthesia-record", name:"Anesthesia record", category:"Orders & labs", result:"Spinal anesthesia given for the procedure", significant:true},
+          {id:"urinalysis", name:"Urinalysis", category:"Orders & labs", result:"Not yet obtained, will follow straight catheterization", significant:false},
+          {id:"mobility-assessment", name:"Mobility assessment", category:"Assessment findings", result:"Limited mobility due to hip precautions", significant:false}
+        ],
+        recommendedAction:"Perform a straight catheterization to relieve the retention and send a urinalysis, then reassess voiding ability over the next several hours before considering an indwelling catheter if retention recurs. Continue to monitor given her opioid use and encourage position changes and privacy to support normal voiding going forward.",
+        goodOutcome:"With timely catheterization, Harriet's discomfort resolves and she gradually resumes normal voiding as her anesthesia and opioid use taper.",
+        badOutcome:"Prolonged, unrecognized retention could lead to bladder overdistension injury or ascending urinary tract infection."
+      },
+      gi: {
+        subjectName:"Leonard Pruitt", subjectSummary:"77-year-old, hospitalized after recent hip surgery",
+        presentingIssue:"frequent watery diarrhea that started 2 days ago",
+        snapshotFacts:[{label:"BP",value:"122/76"},{label:"HR",value:"94"},{label:"RR",value:"18"},{label:"Temp",value:"100.8°F"},{label:"Stools",value:"6 watery stools/24h"}],
+        backgroundFacts:[
+          "Has had 6 episodes of watery, foul-smelling diarrhea in the last day.",
+          "Started a course of a broad-spectrum antibiotic about a week ago for a surgical site infection.",
+          "Reports crampy abdominal pain that comes and goes.",
+          "His roommate in the shared room is immunocompromised.",
+          "No blood in the stool that he's noticed.",
+          "Feels generally weak and a bit dehydrated, says his mouth feels dry.",
+          "No recent travel or unusual food exposures.",
+          "Staff haven't yet moved him to a private room or started extra precautions."
+        ],
+        initialAssessment:"Mildly dehydrated appearance, with dry mucous membranes. Diffuse mild abdominal tenderness, hyperactive bowel sounds. No current isolation precautions in place despite his symptoms and antibiotic history.",
+        conclusion:"Clostridioides difficile (C. diff) infection",
+        conclusionOptions:["Clostridioides difficile (C. diff) infection","Viral gastroenteritis","Medication side effect (non-infectious)","Irritable bowel syndrome flare"],
+        conclusionExplanation:"New-onset frequent watery diarrhea following a recent course of broad-spectrum antibiotics, with a positive C. diff toxin test, is the classic picture of antibiotic-associated C. diff colitis. The nursing priority is immediate contact precautions, since C. diff spores are not reliably killed by alcohol-based hand sanitizer and this patient shares a room with an immunocompromised roommate.",
+        keyConsiderations:["Contact precautions with soap-and-water hand hygiene (not just alcohol sanitizer, which doesn't kill C. diff spores) should have started the moment symptoms appeared, before confirmatory testing even returned", "A roommate who is immunocompromised significantly raises the urgency of isolating him and considering a room change", "Recent broad-spectrum antibiotic use is the single biggest risk factor to connect to this presentation"],
+        evidenceItems:[
+          {id:"c-diff-pcr", name:"C. diff toxin PCR", category:"Orders & labs", result:"Positive", significant:true},
+          {id:"cbc", name:"CBC", category:"Orders & labs", result:"WBC 15,000 (elevated)", significant:true},
+          {id:"bmp", name:"Basic metabolic panel", category:"Orders & labs", result:"Mild hypokalemia from fluid losses", significant:true},
+          {id:"stool-log", name:"Stool frequency log", category:"Assessment findings", result:"6 watery stools in 24 hours", significant:true},
+          {id:"antibiotic-history", name:"Antibiotic history", category:"Orders & labs", result:"Broad-spectrum antibiotic course started 7 days ago", significant:true},
+          {id:"isolation-check", name:"Isolation status check", category:"Assessment findings", result:"No contact precautions currently in place", significant:true},
+          {id:"abdominal-exam", name:"Abdominal exam", category:"Assessment findings", result:"Diffuse mild tenderness, no rigidity or rebound", significant:false},
+          {id:"hydration-status", name:"Hydration status", category:"Assessment findings", result:"Dry mucous membranes, mild tachycardia", significant:true}
+        ],
+        recommendedAction:"Initiate contact precautions immediately with soap-and-water hand hygiene for all staff and visitors, consider a room change away from the immunocompromised roommate, notify the provider for appropriate C. diff-targeted antibiotic therapy, discontinue the inciting antibiotic if possible, and monitor hydration and electrolytes closely.",
+        goodOutcome:"With prompt isolation and targeted treatment, Leonard's diarrhea resolves over several days without spreading the infection to his roommate.",
+        badOutcome:"Delayed precautions could allow C. diff spores to spread to his immunocompromised roommate, risking a severe infection in someone less able to fight it off."
+      },
+      msk: {
+        subjectName:"Ruth Okafor", subjectSummary:"83-year-old long-term care resident, limited mobility after a stroke",
+        presentingIssue:"a reddened area on her sacrum noticed during a routine skin check",
+        snapshotFacts:[{label:"BP",value:"118/70"},{label:"HR",value:"80"},{label:"RR",value:"16"},{label:"Braden score",value:"14 (moderate risk)"},{label:"Mobility",value:"Total assist"}],
+        backgroundFacts:[
+          "Had a stroke 3 months ago that left her with significant weakness on one side, limiting her ability to reposition herself.",
+          "Incontinent of urine at times, which can leave skin more vulnerable to breakdown.",
+          "Eating poorly the last couple of weeks per staff report.",
+          "Family reports she seems to be left in the same position for long stretches during busy shifts.",
+          "No pain reported at the site, and her sensation is somewhat diminished on that side too.",
+          "The reddened area does not blanch (turn white) when pressed.",
+          "No open wound yet, skin is intact over the area.",
+          "Appears comfortable otherwise, no signs of infection currently."
+        ],
+        initialAssessment:"Non-blanchable erythema over the sacral area, approximately 3cm, with skin intact and no open areas. Surrounding skin is dry. No signs of infection currently.",
+        conclusion:"Stage 1 pressure injury, high risk for progression",
+        conclusionOptions:["Stage 1 pressure injury, high risk for progression","Incontinence-associated dermatitis","Normal skin discoloration","Early cellulitis"],
+        conclusionExplanation:"Non-blanchable erythema over a bony prominence in a patient with limited mobility, incontinence, and poor nutrition, scoring moderate risk on the Braden scale, is a Stage 1 pressure injury. The nursing priority is an immediate repositioning schedule and pressure redistribution to prevent progression to a deeper, open wound, rather than just noting it and moving on.",
+        keyConsiderations:["Non-blanchable redness, versus blanchable, is the key sign that tissue damage has already begun even with intact skin", "Her diminished sensation on that side means pain cannot be relied on as a warning sign - scheduled repositioning is essential regardless of complaints", "Incontinence, poor nutrition, and immobility are all compounding risk factors that need to be addressed together, not just the skin finding in isolation"],
+        evidenceItems:[
+          {id:"braden-score", name:"Braden scale score", category:"Assessment findings", result:"14 (moderate risk)", significant:true},
+          {id:"skin-assessment", name:"Skin assessment", category:"Assessment findings", result:"Non-blanchable erythema, sacrum, skin intact", significant:true},
+          {id:"nutrition-screen", name:"Nutrition screen", category:"Orders & labs", result:"Poor intake over the past 2 weeks, low albumin on recent labs", significant:true},
+          {id:"repositioning-log", name:"Repositioning log", category:"Assessment findings", result:"Gaps of over 4 hours between documented position changes", significant:true},
+          {id:"continence-assessment", name:"Continence assessment", category:"Assessment findings", result:"Intermittent urinary incontinence noted", significant:true},
+          {id:"mobility-assessment", name:"Mobility assessment", category:"Assessment findings", result:"Requires total assist for all position changes", significant:false},
+          {id:"support-surface", name:"Pressure-redistribution surface check", category:"Assessment findings", result:"Standard mattress currently in use, no specialty surface ordered", significant:true},
+          {id:"cbc", name:"CBC", category:"Orders & labs", result:"Mild anemia, otherwise unremarkable", significant:false}
+        ],
+        recommendedAction:"Implement a strict repositioning schedule at least every 2 hours, order a pressure-redistributing mattress, optimize nutrition with a dietitian consult, manage incontinence proactively with barrier cream and prompt cleaning, and document the wound and reassess daily to catch any progression early.",
+        goodOutcome:"With a consistent repositioning schedule and better nutrition, Ruth's skin returns to normal without progressing to an open wound.",
+        badOutcome:"Without intervention, the area could break down into a deep, open pressure ulcer that is painful, slow to heal, and prone to infection."
+      },
+      nervous: {
+        subjectName:"Walter Nkemelu", subjectSummary:"78-year-old retired teacher, post-op day 2 from right hip replacement",
+        presentingIssue:"mild confusion and unsteadiness since surgery two days ago",
+        snapshotFacts:[{label:"BP",value:"142/88"},{label:"HR",value:"88"},{label:"Pain",value:"4/10"},{label:"SpO2",value:"94% RA"},{label:"Temp",value:"99.1°F"}],
+        backgroundFacts:[
+          "Has been getting up to the bathroom alone overnight without calling for help.",
+          "Says he feels 'a little foggy' but doesn't want to bother anyone.",
+          "Started a new opioid pain medication since surgery, previously opioid-naive.",
+          "Family mentions he's been more confused than usual since yesterday evening, especially at night.",
+          "No falls yet, but was found sitting on the edge of the bed once overnight by a tech.",
+          "History of mild hearing loss, wears glasses, doesn't always have them on at night.",
+          "Family history of dementia (mother), but no personal history of cognitive issues before surgery.",
+          "Hasn't been drinking much fluid, says the hospital food 'doesn't taste right.'"
+        ],
+        initialAssessment:"Oriented to person only on this shift's assessment, previously oriented x3 preoperatively. Unsteady gait when attempting to stand, requires contact guard assist. Bladder scan reveals mild retention. Skin intact, incision clean/dry/intact.",
+        conclusion:"Risk for falls related to acute post-operative delirium",
+        conclusionOptions:["Risk for falls related to acute post-operative delirium","Baseline dementia progression","Normal post-anesthesia grogginess","Depression with psychomotor slowing"],
+        conclusionExplanation:"New-onset confusion in an elderly post-op patient on opioids, with urinary retention and sensory impairment (no glasses at night) plus disrupted sleep, points to acute delirium superimposed on a high fall risk - a classic multifactorial post-op picture rather than baseline dementia.",
+        keyConsiderations:["Unassisted nighttime ambulation is an active fall hazard right now", "New confusion in an elderly post-op patient needs a delirium workup, not just reassurance", "Urinary retention and opioid dosing are both reversible contributors that need addressing"],
+        evidenceItems:[
+          {id:"bladder-scan", name:"Bladder scan", category:"Assessment findings", result:"320 mL post-void residual (elevated)", significant:true},
+          {id:"urinalysis", name:"Urinalysis", category:"Orders & labs", result:"Positive leukocyte esterase and nitrites, consistent with UTI", significant:true},
+          {id:"cam-assessment", name:"CAM confusion assessment", category:"Assessment findings", result:"Positive: acute onset, inattention, fluctuating course", significant:true},
+          {id:"fall-risk-score", name:"Morse Fall Scale", category:"Assessment findings", result:"Score 65 (high risk)", significant:true},
+          {id:"vitals-trend", name:"Vital signs trend", category:"Vitals & monitoring", result:"Mildly elevated HR and BP, afebrile, SpO2 94% RA", significant:false},
+          {id:"pain-score", name:"Pain score", category:"Vitals & monitoring", result:"4/10, improved from 7/10 overnight after opioid dose", significant:false},
+          {id:"cbc", name:"CBC", category:"Orders & labs", result:"Mild leukocytosis, WBC 11.8", significant:true},
+          {id:"glucose", name:"Fingerstick glucose", category:"Vitals & monitoring", result:"104 mg/dL (normal)", significant:false},
+          {id:"skin-check", name:"Skin and incision check", category:"Assessment findings", result:"Incision clean, dry, intact, no signs of infection", significant:false}
+        ],
+        recommendedAction:"Implement fall precautions immediately (bed alarm, non-slip footwear, glasses and hearing aids on, call light within reach, hourly rounding), notify the provider about the suspected UTI and consider an opioid dose adjustment, address urinary retention per protocol, reorient frequently, and reassess confusion each shift with the CAM.",
+        goodOutcome:"With fall precautions, UTI treatment, and the opioid regimen adjusted, Walter's confusion clears over the next day or two with no falls.",
+        badOutcome:"Without intervention, his unassisted nighttime attempts to get up are likely to end in a fall - a serious complication for a fresh hip replacement."
+      },
+      endocrine: {
+        subjectName:"Theodore Banks", subjectSummary:"58-year-old, hospitalized for cellulitis, has type 2 diabetes",
+        presentingIssue:"suddenly became shaky, sweaty, and confused about 20 minutes after his insulin was given",
+        snapshotFacts:[{label:"BP",value:"128/80"},{label:"HR",value:"110"},{label:"RR",value:"18"},{label:"Glucose",value:"48 mg/dL"},{label:"Skin",value:"Diaphoretic, cool"}],
+        backgroundFacts:[
+          "Received his scheduled insulin dose about 20 minutes ago.",
+          "Breakfast tray arrived late and he only ate a few bites before symptoms started.",
+          "Feels shaky, sweaty, and says he feels 'not right,' a little confused when asked questions.",
+          "Has type 2 diabetes, usually well-controlled, this hasn't happened to him before in the hospital.",
+          "No other new medications started recently that would explain this.",
+          "His wife is at bedside and is understandably alarmed.",
+          "Able to follow simple commands and swallow safely at this point, though slightly slow to respond.",
+          "His blood sugar was within normal range at his last check a few hours ago."
+        ],
+        initialAssessment:"Diaphoretic, with cool and clammy skin and a mild tremor noted. Slightly slow to respond to questions but able to follow commands and protect his airway. No focal neurologic deficits.",
+        conclusion:"Hypoglycemia (insulin given without adequate food intake)",
+        conclusionOptions:["Hypoglycemia (insulin given without adequate food intake)","Hyperglycemic crisis","Stroke","Anxiety attack"],
+        conclusionExplanation:"Insulin administration followed by a late, incomplete meal, with the classic adrenergic and neuroglycopenic symptoms (shakiness, sweating, confusion) and a confirmed low fingerstick glucose, is straightforward insulin-induced hypoglycemia. The nursing priority is immediate treatment with fast-acting glucose since he's still able to swallow safely, followed by identifying why the timing mismatch happened.",
+        keyConsiderations:["Because he can still swallow safely and follow commands, fast-acting oral glucose is appropriate; if he were unable to swallow safely, this would require IV dextrose or glucagon instead", "The root cause here is a timing mismatch between insulin administration and food intake - a system issue worth flagging so it doesn't happen again", "Recheck glucose 15 minutes after treatment and repeat treatment if still low, per the standard hypoglycemia protocol"],
+        evidenceItems:[
+          {id:"fingerstick-glucose", name:"Fingerstick glucose", category:"Vitals & monitoring", result:"48 mg/dL, rechecked and confirmed", significant:true},
+          {id:"repeat-glucose", name:"Repeat glucose at 15 min", category:"Vitals & monitoring", result:"Rises to 92 mg/dL after oral glucose", significant:true},
+          {id:"mar-review", name:"Medication administration record", category:"Orders & labs", result:"Insulin given at scheduled time, meal arrived 25 minutes late", significant:true},
+          {id:"swallow-assessment", name:"Swallow assessment", category:"Assessment findings", result:"Intact, able to safely take oral glucose", significant:true},
+          {id:"neuro-check", name:"Neuro check", category:"Assessment findings", result:"Mild slowed responses, resolving after treatment, no focal deficits", significant:true},
+          {id:"vitals-trend", name:"Vital signs trend", category:"Vitals & monitoring", result:"Tachycardia improving after treatment", significant:false},
+          {id:"symptom-timeline", name:"Symptom timeline", category:"Assessment findings", result:"Onset about 20 minutes after insulin, before meal completed", significant:true},
+          {id:"prior-glucose-trend", name:"Prior glucose trend", category:"Orders & labs", result:"Well-controlled over prior days in the hospital", significant:false}
+        ],
+        recommendedAction:"Give 15-20 grams of fast-acting oral carbohydrate immediately since he can swallow safely, recheck glucose in 15 minutes and repeat if still low, then provide a more substantial snack or meal once stable. Report the insulin-to-meal timing mismatch so the care team can coordinate meal delivery with medication timing going forward.",
+        goodOutcome:"With prompt treatment, Theodore's glucose normalizes and his symptoms resolve within 15-20 minutes, with no lasting effects.",
+        badOutcome:"Untreated, worsening hypoglycemia can progress to loss of consciousness or seizure."
+      },
+      reproductive: {
+        subjectName:"Simone Alvarez", subjectSummary:"31-year-old, 2 hours postpartum after a vaginal delivery",
+        presentingIssue:"heavier than expected vaginal bleeding noticed on a routine postpartum check",
+        snapshotFacts:[{label:"BP",value:"98/58"},{label:"HR",value:"118"},{label:"RR",value:"22"},{label:"Fundus",value:"Boggy, above umbilicus"},{label:"Pad count",value:"Soaked in 15 min"}],
+        backgroundFacts:[
+          "Had a vaginal delivery about 2 hours ago after a long labor that included oxytocin augmentation.",
+          "Feels increasingly dizzy and lightheaded since the last check.",
+          "Reports her pad is 'soaked through' faster than she expected.",
+          "Baby is at her bedside, she's otherwise alert but clearly anxious about the bleeding.",
+          "Had a slightly larger than average baby, a risk factor for uterine atony.",
+          "No history of bleeding problems with previous pregnancies, this is her second baby.",
+          "Hasn't been to the bathroom to void since delivery.",
+          "Support person at bedside, understandably worried and asking a lot of questions."
+        ],
+        initialAssessment:"Pale, diaphoretic, and visibly anxious. Fundus boggy and displaced above the umbilicus on palpation. Heavy, continuous vaginal bleeding with some clots noted. Bladder appears distended.",
+        conclusion:"Postpartum hemorrhage due to uterine atony",
+        conclusionOptions:["Postpartum hemorrhage due to uterine atony","Normal postpartum lochia","Retained placental fragment as the sole cause","Perineal laceration bleeding"],
+        conclusionExplanation:"A boggy, poorly contracted uterus displaced above the umbilicus, with heavy bleeding and a distended bladder (which prevents the uterus from contracting effectively), in a patient with risk factors (prolonged labor, oxytocin augmentation, a larger baby), is classic uterine atony - the leading cause of postpartum hemorrhage - and needs immediate fundal massage and bladder emptying as first-line nursing actions while escalating for medication support.",
+        keyConsiderations:["Fundal massage is the immediate first-line nursing action for a boggy uterus - this should happen before or simultaneously with notifying the provider, not instead of it", "A full bladder is an easily correctable contributor to uterine atony that must be addressed (catheterize if she can't void)", "Accurate, ongoing blood loss estimation, not just 'a lot of bleeding,' is essential to guide how aggressively this needs to be managed"],
+        evidenceItems:[
+          {id:"fundal-assessment", name:"Fundal assessment", category:"Assessment findings", result:"Boggy, above the umbilicus, firms temporarily with massage then relaxes again", significant:true},
+          {id:"vitals-trend", name:"Vital signs trend", category:"Vitals & monitoring", result:"Rising heart rate, falling blood pressure over the last 15 minutes", significant:true},
+          {id:"blood-loss-estimate", name:"Blood loss estimate", category:"Assessment findings", result:"Estimated over 600 mL and ongoing", significant:true},
+          {id:"bladder-assessment", name:"Bladder assessment", category:"Assessment findings", result:"Distended, no void since delivery", significant:true},
+          {id:"cbc-stat", name:"STAT CBC", category:"Orders & labs", result:"Hemoglobin dropping from pre-delivery baseline", significant:true},
+          {id:"placenta-note", name:"Placenta inspection note", category:"Orders & labs", result:"Delivered placenta appeared intact on initial inspection", significant:false},
+          {id:"oxytocin-status", name:"Oxytocin infusion status", category:"Orders & labs", result:"Currently infusing per protocol, bleeding continuing despite this", significant:true},
+          {id:"iv-access", name:"IV access check", category:"Assessment findings", result:"One peripheral IV in place", significant:true}
+        ],
+        recommendedAction:"Perform immediate fundal massage, assist her to void or catheterize to empty her bladder, call for the provider and additional help right away, ensure a second large-bore IV is placed, and prepare for additional uterotonic medications if bleeding continues despite these measures. Continue frequent vital sign and blood loss monitoring.",
+        goodOutcome:"With prompt fundal massage, bladder emptying, and uterotonic support, Simone's bleeding is controlled and she stabilizes without needing a transfusion.",
+        badOutcome:"Unrecognized or delayed treatment of uterine atony can lead to severe hemorrhage, hypovolemic shock, and the need for emergency surgical intervention."
+      },
+      behavioral: {
+        subjectName:"Marcus Webb", subjectSummary:"36-year-old, admitted for a medical issue, now acutely agitated",
+        presentingIssue:"became loud, pacing, and verbally hostile toward staff over the past 20 minutes",
+        snapshotFacts:[{label:"BP",value:"148/92"},{label:"HR",value:"108"},{label:"RR",value:"22"},{label:"Agitation",value:"Escalating"},{label:"Behavior",value:"Pacing, raised voice"}],
+        backgroundFacts:[
+          "Has been hospitalized for 2 days for a medical issue unrelated to psychiatric history.",
+          "Became increasingly frustrated after a delay in getting pain medication earlier today.",
+          "Raising his voice at staff, pacing the room, slammed a door.",
+          "No weapon or object of concern visible, hasn't been physically aggressive toward anyone yet.",
+          "History of difficulty trusting healthcare settings after a past negative experience being dismissed by a provider.",
+          "In a private room, so roommate safety isn't a factor here.",
+          "Responds somewhat when approached calmly and given space, but escalates again if he feels rushed or talked over.",
+          "No evidence of confusion, intoxication, or psychosis on initial observation."
+        ],
+        initialAssessment:"Pacing, with a raised voice and clenched fists at times but no physical aggression toward people or property beyond the door. Oriented and coherent in speech, no signs of hallucination or confusion.",
+        conclusion:"Situational agitation responsive to de-escalation, not requiring restraint",
+        conclusionOptions:["Situational agitation responsive to de-escalation, not requiring restraint","Acute psychotic episode","Delirium","Imminent danger requiring physical restraint"],
+        conclusionExplanation:"Agitation clearly tied to a specific frustrating event (delayed pain medication), with intact orientation and no psychosis or confusion, and some response to a calm approach, points to situational agitation best managed with verbal de-escalation and addressing the root cause - using the least restrictive intervention appropriate, rather than jumping to restraints or involuntary medication, which should be reserved for when de-escalation fails and there is imminent danger.",
+        keyConsiderations:["Using the least restrictive intervention first is both an ethical and a clinical priority - verbal de-escalation and addressing the root cause should be tried before anything more restrictive", "Ruling out a medical or psychiatric cause (confusion, intoxication, psychosis) is an important safety check before assuming this is purely situational", "Approaching calmly, giving space, and avoiding a rushed or confrontational tone are concrete de-escalation techniques that were shown to help here"],
+        evidenceItems:[
+          {id:"behavioral-observation", name:"Behavioral observation", category:"Assessment findings", result:"No physical aggression toward people, agitation tied to a specific trigger", significant:true},
+          {id:"orientation-check", name:"Orientation check", category:"Assessment findings", result:"Oriented to person, place, time, and situation", significant:true},
+          {id:"substance-screen", name:"Substance screen", category:"Orders & labs", result:"No evidence of intoxication", significant:false},
+          {id:"pain-med-record", name:"Pain medication record", category:"Orders & labs", result:"Delay of over an hour past scheduled time identified", significant:true},
+          {id:"deescalation-response", name:"De-escalation response", category:"Assessment findings", result:"Partial calming noted when approached slowly with space given", significant:true},
+          {id:"vitals", name:"Vital signs", category:"Vitals & monitoring", result:"Mildly elevated, consistent with anxiety/anger rather than a medical crisis", significant:false},
+          {id:"environment-check", name:"Environment check", category:"Assessment findings", result:"No weapons or concerning objects in the room", significant:true},
+          {id:"psych-history", name:"Psychiatric history review", category:"Orders & labs", result:"No prior psychiatric diagnosis on record", significant:false}
+        ],
+        recommendedAction:"Use calm, non-confrontational verbal de-escalation, give him space and avoid rushing him, directly address and correct the pain medication delay, and involve him in problem-solving next steps. Reserve restraints or involuntary medication only if he becomes an imminent danger to himself or others despite these efforts, and document the de-escalation attempts clearly.",
+        goodOutcome:"With calm de-escalation and the medication delay addressed, Marcus settles down within the hour and the rest of his stay proceeds without further incidents.",
+        badOutcome:"Responding with a show of force or restraints prematurely could escalate his agitation further and damage trust, making future care more difficult."
+      },
+      multisystem: {
+        subjectName:"Phyllis Granger", subjectSummary:"70-year-old, post-op day 3 from bowel surgery, on the surgical floor",
+        presentingIssue:"new confusion and feeling unusually cold and clammy, noticed during a routine round",
+        snapshotFacts:[{label:"BP",value:"92/58"},{label:"HR",value:"118"},{label:"RR",value:"24"},{label:"Temp",value:"96.8°F (low)"},{label:"SpO2",value:"94%"}],
+        backgroundFacts:[
+          "Had bowel surgery 3 days ago, recovery seemed to be going well until this morning.",
+          "Family visiting noticed she seemed 'not herself,' more confused than yesterday.",
+          "Surgical incision site looks more red and has some new drainage when checked.",
+          "Skin feels unusually cool and clammy to the touch.",
+          "Urine output has been lower than the past couple of shifts per the record.",
+          "No complaints of pain that are new or different, though she's a bit too confused to reliably report pain right now.",
+          "History of mild dementia at baseline, but family says this new confusion is a clear change, worse than her usual.",
+          "No known allergies."
+        ],
+        initialAssessment:"Confused, oriented only to person. Skin cool, pale, and clammy despite a low-normal recorded temperature. Surgical incision erythematous with purulent drainage. Capillary refill delayed.",
+        conclusion:"Sepsis secondary to surgical site infection",
+        conclusionOptions:["Sepsis secondary to surgical site infection","Normal post-operative recovery","Dehydration alone","Progression of baseline dementia"],
+        conclusionExplanation:"A clear infection source (the draining, erythematous surgical wound), new altered mental status, hypotension, tachycardia, tachypnea, and low urine output, together with a LOW temperature rather than fever (common and often under-recognized in older adults with sepsis), meet criteria for sepsis - a medical emergency requiring the nursing team to activate rapid response and the sepsis bundle immediately, not to wait and reassess.",
+        keyConsiderations:["Sepsis in older adults often presents WITHOUT fever, sometimes with a low or normal temperature, which can cause dangerous under-recognition if nurses are only watching for fever", "New confusion in a post-operative patient, especially when family confirms it's a clear change from baseline, should always trigger a full assessment rather than being attributed to 'just dementia'", "A visibly infected surgical wound is the clear, identifiable source here and should be reported immediately alongside the systemic signs"],
+        evidenceItems:[
+          {id:"temp-trend", name:"Temperature trend", category:"Vitals & monitoring", result:"96.8°F, down from a normal post-op trend - notably low, not elevated", significant:true},
+          {id:"lactate", name:"Lactate", category:"Orders & labs", result:"4.2 mmol/L (elevated)", significant:true},
+          {id:"wound-assessment", name:"Wound assessment", category:"Assessment findings", result:"Erythematous incision with purulent drainage, new since yesterday", significant:true},
+          {id:"urine-output", name:"Urine output record", category:"Vitals & monitoring", result:"Below 0.5 mL/kg/hr for the past several hours", significant:true},
+          {id:"mental-status-change", name:"Mental status change", category:"Assessment findings", result:"New confusion confirmed by family as a change from baseline", significant:true},
+          {id:"cbc", name:"CBC", category:"Orders & labs", result:"WBC 19,000 with marked left shift", significant:true},
+          {id:"blood-cultures", name:"Blood cultures", category:"Orders & labs", result:"Drawn before antibiotics, pending", significant:false},
+          {id:"cap-refill", name:"Capillary refill", category:"Assessment findings", result:"Delayed, greater than 3 seconds", significant:true}
+        ],
+        recommendedAction:"Activate rapid response and the sepsis bundle immediately: notify the provider, draw blood cultures and lactate before antibiotics, start broad-spectrum IV antibiotics and fluid resuscitation per order, and prepare for possible wound re-exploration. Continue frequent vital sign and mental status monitoring.",
+        goodOutcome:"With rapid recognition and bundle activation, Phyllis stabilizes with antibiotics and fluids, and the infected wound is treated before further decline.",
+        badOutcome:"If her low temperature and 'just confusion' were dismissed as unremarkable, sepsis could progress rapidly to septic shock and be far harder to reverse."
+      }
+    }
+  };
+
+  var state = {
+    sample: null, sampleChecked: false,
+    page: "home",
+    caseStage: "interview",
+    track: null, unit: null,
+    caseData: null,
+    chatTurns: [], chatBusy: false,
+    orderedIds: [], evidenceStatus: {},
+    selectedConclusion: "",
+    assessmentBusy: false,
+    feedback: null,
+    errorMsg: null,
+    startedAt: null,
+    limitedMode: false, scriptedOpener: false,
+    progress: loadProgress(),
+    justUnlocked: null,
+    builderMode: loadBuilderMode(),
+    quiz: null, quizIndex: 0, quizPicked: null, quizScore: 0, quizStatus: "idle"
+  };
+
+  var root = document.getElementById("root");
+
+  function el(tag, attrs, children){
+    var node = document.createElement(tag);
+    attrs = attrs || {};
+    for (var k in attrs){
+      if (k === "class") node.className = attrs[k];
+      else if (k === "html") node.innerHTML = attrs[k];
+      else if (k.indexOf("on") === 0 && typeof attrs[k] === "function") node.addEventListener(k.slice(2), attrs[k]);
+      else if (attrs[k] === false || attrs[k] === null || attrs[k] === undefined) { /* omit */ }
+      else if (attrs[k] === true) node.setAttribute(k, "");
+      else node.setAttribute(k, attrs[k]);
+    }
+    (children || []).forEach(function(c){
+      if (c === null || c === undefined) return;
+      if (typeof c === "string") node.appendChild(document.createTextNode(c));
+      else node.appendChild(c);
+    });
+    return node;
+  }
+
+  function trackCfg(key){ return TRACKS[key || state.track]; }
+  function unitCfg(key){ return UNITS.filter(function(u){ return u.key === (key||state.unit); })[0]; }
+
+  // ---------------- progress + builder mode ----------------
+
+  function loadProgress(){
+    try{ var raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : {}; }
+    catch(e){ return {}; }
+  }
+  function saveProgress(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state.progress)); } catch(e){}
+  }
+  function loadBuilderMode(){
+    try{ var raw = localStorage.getItem(BUILDER_KEY); return raw === null ? true : raw === "true"; }
+    catch(e){ return true; }
+  }
+  function toggleBuilderMode(){
+    state.builderMode = !state.builderMode;
+    try{ localStorage.setItem(BUILDER_KEY, String(state.builderMode)); } catch(e){}
+    render();
+  }
+  function unitProgress(track, unitKey){
+    var t = state.progress[track];
+    if (!t || !t[unitKey]) return {attempts:0, best:0};
+    return t[unitKey];
+  }
+  function trackCompletion(track){
+    var done = UNITS.filter(function(u){ return unitProgress(track, u.key).attempts >= PASS_THRESHOLD; }).length;
+    return Math.round(done / UNITS.length * 100);
+  }
+  function isUnitUnlocked(track, idx){
+    if (state.builderMode) return true;
+    if (idx === 0) return true;
+    return unitProgress(track, UNITS[idx-1].key).attempts >= PASS_THRESHOLD;
+  }
+  function recordAttempt(track, unitKey, score){
+    if (!state.progress[track]) state.progress[track] = {};
+    var cur = state.progress[track][unitKey] || {attempts:0, best:0};
+    cur.attempts += 1;
+    cur.best = Math.max(cur.best, score||0);
+    state.progress[track][unitKey] = cur;
+    saveProgress();
+  }
+
+  // ---------------- routing ----------------
+
+  var VALID_PAGES = ["gate","home","medicine","nursing","case","quiz"];
+  function goTo(page){
+    state.page = page;
+    if (location.hash.replace("#","") !== page) location.hash = page;
+    render();
+    if (page !== "gate") requestAnimationFrame(function(){ window.scrollTo(0,0); });
+  }
+  function readHash(){
+    var h = (location.hash || "").replace("#","");
+    return VALID_PAGES.indexOf(h) !== -1 ? h : "gate";
+  }
+  window.addEventListener("hashchange", function(){
+    // handles the browser's own back/forward buttons; same-tab clicks
+    // already render synchronously inside goTo().
+    var fromHash = readHash();
+    if (fromHash !== state.page){ state.page = fromHash; render(); }
+  });
+
+  // ---------------- sample helpers ----------------
+
+  function ensureSample(){
+    if (state.sampleChecked) return Promise.resolve(state.sample);
+    if (!window.claude || !window.claude.use) {
+      state.sampleChecked = true; state.sample = null;
+      return Promise.resolve(null);
+    }
+    return window.claude.use("sample").then(function(s){
+      state.sampleChecked = true; state.sample = s; return s;
+    }).catch(function(){
+      state.sampleChecked = true; state.sample = null; return null;
+    });
+  }
+
+  function friendlyError(code){
+    switch(code){
+      case "not_granted": return "You declined Claude access for this page, so live generation and grading are off.";
+      case "sampling_disabled": return "Claude isn't available for this account right now.";
+      case "rate_limited": return "Too many requests right now - wait a moment and try again.";
+      case "refused": return "Claude declined to respond to that. Try rephrasing.";
+      case "empty_completion": return "No response came back. Try again.";
+      case "invalid_json": return "The response wasn't in the expected format. Try again.";
+      default: return "Something went wrong talking to Claude. Try again.";
+    }
+  }
+
+  function shuffle(arr){
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--){
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  // ---------------- case generation ----------------
+
+  function buildScenarioPrompt(cfg, unit){
+    var difficulty = DIFFICULTIES[Math.floor(Math.random()*DIFFICULTIES.length)];
+    return "Generate one fictional " + cfg.scenarioNoun + " for a " + cfg.label + " training simulator used by students and trainees. The " + cfg.subjectRole + " is working with a trainee " + cfg.professional + ". Base it on " + unit.hint + ", written with " + difficulty + ". Make it internally consistent and plausible. Avoid the most cliched textbook example for this unit.\n\n" +
+      "Reply with ONLY a JSON object, no markdown fence, no commentary, matching exactly this shape:\n{\n" +
+      '  "subjectName": string (fictional),\n' +
+      '  "subjectSummary": string (short - age/role/background as relevant, one line),\n' +
+      '  "presentingIssue": string (short, the core issue the ' + cfg.subjectRole + ' brings),\n' +
+      '  "snapshotFacts": array of 4 to 5 {"label": string, "value": string} pairs - ' + cfg.snapshotHint + ',\n' +
+      '  "backgroundFacts": string[] (6 to 10 short natural-language facts the ' + cfg.subjectRole + ' could reveal if asked something relevant; do not phrase them as a checklist that gives away the answer),\n' +
+      '  "initialAssessment": string (2 to 4 sentences - what an initial focused review/exam/intake turns up before any interview),\n' +
+      '  "conclusion": string (the single correct ' + cfg.conclusionLabel.toLowerCase() + ', concise - a few words, not a sentence),\n' +
+      '  "conclusionOptions": string[] (exactly 4 strings: the correct conclusion above worded identically, plus 3 plausible but incorrect alternatives a trainee might mistakenly pick, each equally short),\n' +
+      '  "conclusionExplanation": string (2 to 4 sentences of reasoning linking the facts to this conclusion),\n' +
+      '  "keyConsiderations": string[] (2 to 4 short critical points a careful trainee should catch),\n' +
+      '  "evidenceItems": array of 8 to 12 objects {"id": kebab-case-id, "name": string, "category": one of ' + JSON.stringify(cfg.evidenceCategories) + ', "result": string (realistic finding), "significant": boolean} - include items that support the conclusion plus a few unremarkable items a trainee might reasonably check,\n' +
+      '  "recommendedAction": string (2 to 3 sentences, the appropriate ' + cfg.actionLabel.toLowerCase() + '),\n' +
+      '  "goodOutcome": string (1 to 2 sentences, result of a timely correct response),\n' +
+      '  "badOutcome": string (1 to 2 sentences, result if missed or mismanaged)\n}';
+  }
+
+  function cloneCase(c){
+    var copy = JSON.parse(JSON.stringify(c));
+    copy.conclusionOptions = shuffle(copy.conclusionOptions.slice());
+    return copy;
+  }
+
+  function resetCaseState(){
+    state.errorMsg = null; state.caseData = null; state.chatTurns = [];
+    state.orderedIds = []; state.evidenceStatus = {}; state.feedback = null; state.scriptedOpener = false;
+    state.selectedConclusion = ""; state.quiz = null;
+  }
+
+  // Starting a unit always opens its authored, reviewed reference case first -
+  // instant, no AI call, and the same every time so accuracy can be checked.
+  function startCase(track, unitKey){
+    state.track = track; state.unit = unitKey;
+    goTo("case");
+    state.caseStage = "loading";
+    resetCaseState();
+    render();
+
+    var authored = CASE_BANK[track] && CASE_BANK[track][unitKey];
+    state.caseData = cloneCase(authored);
+    ensureSample().then(function(sample){ afterCaseReady(!sample); });
+  }
+
+  // "Generate a new case" - an explicit, separate action for extra reps once
+  // the authored reference case has been reviewed. Falls back to the
+  // authored case again if live generation isn't available or fails.
+  function generateAICase(){
+    var track = state.track, unitKey = state.unit;
+    state.caseStage = "loading";
+    resetCaseState();
+    render();
+
+    var cfg = TRACKS[track], unit = unitCfg(unitKey);
+    var authored = CASE_BANK[track] && CASE_BANK[track][unitKey];
+
+    ensureSample().then(function(sample){
+      if (!sample){
+        state.caseData = cloneCase(authored);
+        state.errorMsg = "Claude access isn't available, so this is the reference case again rather than a freshly generated one.";
+        afterCaseReady(true);
+        return;
+      }
+      sample.json(buildScenarioPrompt(cfg, unit), {modelTier:"default", cache:false})
+        .then(function(data){
+          if (!data || !data.conclusion || !data.evidenceItems){ throw {code:"invalid_json"}; }
+          var options = Array.isArray(data.conclusionOptions) ? data.conclusionOptions.slice() : [];
+          if (options.indexOf(data.conclusion) === -1) options = [data.conclusion].concat(options);
+          data.conclusionOptions = shuffle(options.slice(0,4));
+          data.generated = true;
+          state.caseData = data;
+          afterCaseReady(false);
+        })
+        .catch(function(e){
+          state.caseData = cloneCase(authored);
+          state.errorMsg = "Couldn't generate a new " + unit.label + " case (" + friendlyError(e && e.code) + "). Showing the reference case again instead.";
+          afterCaseReady(true);
+        });
+    });
+  }
+
+  function afterCaseReady(limited){
+    state.startedAt = Date.now();
+    state.limitedMode = limited;
+    state.caseStage = "interview";
+    render();
+    if (!limited && state.sample){
+      openInterview();
+    } else {
+      state.scriptedOpener = true;
+      render();
+    }
+  }
+
+  // ---------------- interview ----------------
+
+  function interviewSystemPrompt(cfg, c){
+    return "You are role-playing as the " + cfg.subjectRole + " in a " + cfg.label + " training simulation for students. Stay fully in character at all times.\n\n" +
+      cfg.subjectRoleCap.toUpperCase() + ": " + c.subjectName + " - " + c.subjectSummary + ".\n" +
+      "PRESENTING ISSUE: " + c.presentingIssue + ".\n" +
+      "BACKGROUND YOU MAY REVEAL (only when asked something relevant; never volunteer more than one or two unprompted, never list them, speak naturally):\n" +
+      c.backgroundFacts.map(function(f){ return "- " + f; }).join("\n") + "\n\n" +
+      "TONE: " + cfg.interviewToneHint + ".\n" +
+      "RULES:\n" +
+      "- Speak only in first person, 1 to 4 sentences at a time.\n" +
+      "- Never use jargon, never state the underlying " + cfg.conclusionLabel.toLowerCase() + " or analysis yourself.\n" +
+      "- Reveal a background fact only when a question actually touches on it.\n" +
+      "- If asked something with no bearing on the case, respond briefly and naturally, without breaking character.\n" +
+      "- Never acknowledge that you are an AI or that this is a simulation.\n\n" +
+      "Begin now with your opening line to the trainee " + cfg.professional + " who just started working with you - describe your situation in your own words, briefly.";
+  }
+
+  function openInterview(){
+    state.chatTurns = [{role:"user", content: interviewSystemPrompt(trackCfg(), state.caseData)}];
+    state.chatBusy = true;
+    render();
+    var streamText = "";
+    state.sample(state.chatTurns, {
+      modelTier:"quick", cache:false,
+      onText: function(u){ streamText = u.text; renderStreamingLine(streamText); }
+    }).then(function(res){
+      state.chatTurns.push({role:"assistant", content: res.text});
+      state.chatBusy = false;
+      render();
+    }).catch(function(e){
+      state.chatBusy = false;
+      state.errorMsg = friendlyError(e && e.code);
+      state.limitedMode = true;
+      state.scriptedOpener = true;
+      render();
+    });
+  }
+
+  function sendYourMessage(text){
+    text = (text || "").trim();
+    if (!text || state.chatBusy) return;
+    state.chatTurns.push({role:"user", content:text});
+    state.chatBusy = true;
+    render();
+    var streamText = "";
+    state.sample(state.chatTurns, {
+      modelTier:"quick", cache:false,
+      onText: function(u){ streamText = u.text; renderStreamingLine(streamText); }
+    }).then(function(res){
+      state.chatTurns.push({role:"assistant", content: res.text});
+      state.chatBusy = false;
+      render();
+    }).catch(function(e){
+      state.chatTurns.pop();
+      state.chatBusy = false;
+      state.errorMsg = friendlyError(e && e.code);
+      render();
+    });
+  }
+
+  function renderStreamingLine(text){
+    var log = document.getElementById("transcript");
+    if (!log) return;
+    var temp = document.getElementById("streaming-line");
+    if (!temp){
+      temp = el("div", {class:"line them", id:"streaming-line"}, [
+        el("div", {class:"who"}, [state.caseData.subjectName]),
+        el("p", {}, [text])
+      ]);
+      log.appendChild(temp);
+    } else {
+      temp.querySelector("p").textContent = text;
+    }
+    log.scrollTop = log.scrollHeight;
+  }
+
+  // ---------------- evidence ----------------
+
+  function toggleEvidence(id){
+    if (state.evidenceStatus[id]) return;
+    var idx = state.orderedIds.indexOf(id);
+    if (idx === -1) state.orderedIds.push(id); else state.orderedIds.splice(idx,1);
+    render();
+  }
+
+  function orderSelectedEvidence(){
+    var ids = state.orderedIds.filter(function(id){ return !state.evidenceStatus[id]; });
+    if (!ids.length) return;
+    ids.forEach(function(id){ state.evidenceStatus[id] = "ordered"; });
+    render();
+    ids.forEach(function(id, i){
+      var delay = 450 + Math.random()*1000 + i*140;
+      setTimeout(function(){
+        state.evidenceStatus[id] = "done";
+        if (state.page === "case" && state.caseStage === "evidence") render();
+      }, delay);
+    });
+  }
+
+  // ---------------- grading ----------------
+
+  function buildGradingPrompt(cfg, c, actionText){
+    var transcript = state.chatTurns.filter(function(t,i){ return i>0; })
+      .map(function(t){ return (t.role === "user" ? "Trainee: " : (c.subjectName + ": ")) + t.content; })
+      .join("\n");
+    if (!transcript) transcript = "(No interview conducted.)";
+    var orderedList = Object.keys(state.evidenceStatus).map(function(id){
+      var t = c.evidenceItems.filter(function(x){ return x.id === id; })[0];
+      return t ? ("- " + t.name + ": " + t.result) : null;
+    }).filter(Boolean).join("\n");
+    if (!orderedList) orderedList = "(No evidence was gathered.)";
+
+    return "You are grading a trainee's performance in a " + cfg.label + " training simulation, focused on " + cfg.gradingFocus + ". The trainee already separately picked their " + cfg.conclusionLabel.toLowerCase() + " from a multiple-choice list (not your job to re-judge that) - grade only the action plan and evidence-gathering below.\n\n" +
+      "GROUND TRUTH (the trainee did not see this section):\n" +
+      "Correct " + cfg.conclusionLabel.toLowerCase() + ": " + c.conclusion + "\n" +
+      "Why: " + c.conclusionExplanation + "\n" +
+      "Key considerations to catch: " + c.keyConsiderations.join("; ") + "\n" +
+      "Recommended " + cfg.actionLabel.toLowerCase() + ": " + c.recommendedAction + "\n\n" +
+      "TRAINEE'S INTERVIEW TRANSCRIPT WITH THE " + cfg.subjectRoleCap.toUpperCase() + ":\n" + transcript + "\n\n" +
+      "EVIDENCE THE TRAINEE GATHERED:\n" + orderedList + "\n\n" +
+      "TRAINEE'S SUBMITTED " + cfg.actionLabel.toUpperCase() + ": \"" + actionText + "\"\n\n" +
+      "Grade this fairly and specifically. Reply with ONLY a JSON object of this shape, no markdown fence, no extra text:\n{\n" +
+      '  "actionScore": number from 0 to 100 (quality of the ' + cfg.actionLabel.toLowerCase() + ' alone),\n' +
+      '  "actionFeedback": string (2 to 3 sentences, second person, evaluating the submitted action plan),\n' +
+      '  "evidenceFeedback": string (1 to 2 sentences on whether the right evidence was gathered),\n' +
+      '  "missedConsiderations": string[] (key considerations the trainee\'s questions or evidence never surfaced; empty array if none),\n' +
+      '  "outcome": string (1 to 3 sentences - what happens next given this performance, blended from the good or bad outcome depending on how well they did)\n}';
+  }
+
+  function fallbackGrade(c, conclusionCorrect){
+    return {
+      actionScore: 50,
+      actionFeedback: "The recommended response: " + c.recommendedAction,
+      evidenceFeedback: "Automatic grading is limited in this mode, so evidence gathering wasn't scored in detail this time.",
+      missedConsiderations: c.keyConsiderations,
+      outcome: conclusionCorrect ? c.goodOutcome : c.badOutcome
+    };
+  }
+
+  function submitAssessment(actionText){
+    actionText = (actionText||"").trim();
+    if (!state.selectedConclusion || state.assessmentBusy) return;
+    state.assessmentBusy = true;
+    render();
+
+    var c = state.caseData;
+    var conclusionCorrect = state.selectedConclusion === c.conclusion;
+
+    function finalize(grade){
+      var overallScore = Math.round((conclusionCorrect ? 50 : 0) + grade.actionScore * 0.5);
+      var verdict = conclusionCorrect && grade.actionScore >= 70 ? "correct"
+        : (conclusionCorrect || grade.actionScore >= 50) ? "partially_correct" : "incorrect";
+      state.feedback = {
+        conclusionCorrect: conclusionCorrect, overallScore: overallScore, verdict: verdict,
+        actionFeedback: grade.actionFeedback, evidenceFeedback: grade.evidenceFeedback,
+        missedConsiderations: grade.missedConsiderations, outcome: grade.outcome
+      };
+      state.assessmentBusy = false;
+      state.caseStage = "feedback";
+      render();
+    }
+
+    if (!state.sample){
+      finalize(fallbackGrade(c, conclusionCorrect));
+      return;
+    }
+
+    state.sample.json(buildGradingPrompt(trackCfg(), c, actionText), {modelTier:"default", cache:false})
+      .then(finalize)
+      .catch(function(e){
+        state.errorMsg = "Grading failed (" + friendlyError(e && e.code) + "). Showing a basic assessment instead.";
+        finalize(fallbackGrade(c, conclusionCorrect));
+      });
+  }
+
+  function finishUnit(){
+    var idx = UNITS.indexOf(unitCfg(state.unit));
+    var nextWasLocked = (idx+1 < UNITS.length) && !isUnitUnlocked(state.track, idx+1);
+    recordAttempt(state.track, state.unit, (state.feedback && state.feedback.overallScore) || 0);
+    var nextUnlockedNow = (idx+1 < UNITS.length) && isUnitUnlocked(state.track, idx+1);
+    state.justUnlocked = (nextWasLocked && nextUnlockedNow) ? UNITS[idx+1].label : null;
+    goTo(state.track);
+    render();
+  }
+
+  // ---------------- quiz ----------------
+
+  function buildQuizPrompt(cfg, unit){
+    return "Write a 5-question multiple-choice quiz for a " + cfg.label + " student studying " + unit.label + " (" + unit.hint + "). Board-exam style: a short vignette or direct question, 4 answer options, one clearly correct. Vary the question types.\n\n" +
+      "Reply with ONLY a JSON array, no markdown fence, no commentary, of exactly 5 objects matching this shape:\n" +
+      '[{"question": string, "options": string[4], "correctIndex": number (0-3), "explanation": string (1-2 sentences)}]';
+  }
+
+  function startQuiz(){
+    goTo("quiz");
+    state.quiz = null; state.quizIndex = 0; state.quizPicked = null; state.quizScore = 0;
+    state.quizStatus = "loading";
+    render();
+
+    if (!state.track || !state.unit){ state.quizStatus = "error"; state.errorMsg = "Start a case first to get a quick check for that unit."; render(); return; }
+    if (!state.sample){
+      state.quizStatus = "error";
+      state.errorMsg = "Claude access isn't available, so the quiz can't be generated right now.";
+      render();
+      return;
+    }
+
+    state.sample.json(buildQuizPrompt(trackCfg(), unitCfg(state.unit)), {modelTier:"default", cache:false})
+      .then(function(data){
+        if (!Array.isArray(data) || !data.length){ throw {code:"invalid_json"}; }
+        state.quiz = data;
+        state.quizStatus = "ready";
+        render();
+      })
+      .catch(function(e){
+        state.quizStatus = "error";
+        state.errorMsg = "Couldn't build a quiz (" + friendlyError(e && e.code) + ").";
+        render();
+      });
+  }
+
+  function pickQuizAnswer(i){
+    if (state.quizPicked !== null) return;
+    state.quizPicked = i;
+    if (state.quiz[state.quizIndex].correctIndex === i) state.quizScore++;
+    render();
+  }
+
+  function nextQuizQuestion(){
+    if (state.quizIndex + 1 >= state.quiz.length){
+      state.quizStatus = "done";
+      render();
+      return;
+    }
+    state.quizIndex++;
+    state.quizPicked = null;
+    render();
+  }
+
+  // ---------------- render ----------------
+
+  function elapsed(){
+    if (!state.startedAt) return "0:00";
+    var s = Math.floor((Date.now()-state.startedAt)/1000);
+    var m = Math.floor(s/60); s = s%60;
+    return m + ":" + (s<10?"0":"")+s;
+  }
+
+  var timerHandle = null;
+
+  var PAGE_META = {
+    home: {title:"Home", crumb:"Overview"},
+    medicine: {title:"Medicine", crumb:"Step 1 · Skill path"},
+    nursing: {title:"Nursing", crumb:"Fundamentals · Skill path"},
+    case: {title:"Active case", crumb:"Working a case"},
+    quiz: {title:"Quick check", crumb:"Multiple-choice quiz"}
+  };
+
+  function render(){
+    root.innerHTML = "";
+
+    if (state.page === "gate"){
+      root.appendChild(renderGate());
+      setupReveal();
+      return;
+    }
+
+    var shell = el("div", {class:"shell"});
+    shell.appendChild(renderSidebar());
+
+    var main = el("div", {class:"main" + (state.track ? " track-" + state.track : "")});
+    var meta = PAGE_META[state.page];
+    main.appendChild(el("div", {class:"topbar"}, [
+      el("h1", {class:"disp"}, [meta.title]),
+      el("span", {class:"crumb mono"}, [meta.crumb])
+    ]));
+
+    var content = el("div", {class:"content"});
+    if (state.page === "home") content.appendChild(renderHome());
+    else if (state.page === "medicine" || state.page === "nursing") content.appendChild(renderPath(state.page));
+    else if (state.page === "case") content.appendChild(renderCasePage());
+    else if (state.page === "quiz") content.appendChild(renderQuiz());
+    main.appendChild(content);
+
+    shell.appendChild(main);
+    root.appendChild(shell);
+
+    if (!timerHandle){
+      timerHandle = setInterval(function(){
+        var t = document.getElementById("case-timer");
+        if (t) t.textContent = elapsed();
+      }, 1000);
+    }
+  }
+
+  function setupReveal(){
+    var els = document.querySelectorAll(".reveal");
+    if (!("IntersectionObserver" in window)){
+      els.forEach(function(e){ e.classList.add("visible"); });
+      return;
+    }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if (entry.isIntersecting){ entry.target.classList.add("visible"); io.unobserve(entry.target); }
+      });
+    }, {threshold:0.12});
+    els.forEach(function(e){ io.observe(e); });
+  }
+
+  function renderGate(){
+    var wrap = el("div", {class:"gate"});
+
+    // ---- nav ----
+    wrap.appendChild(el("div", {class:"g-nav"}, [
+      el("div", {class:"g-nav-inner g-wrap"}, [
+        el("div", {class:"g-logo"}, [el("span",{class:"dot"}), "Casebook"]),
+        el("div", {class:"g-links"}, [
+          anchorLink("How it works", "how"), anchorLink("Tracks", "tracks"), anchorLink("Pricing", "pricing"), anchorLink("FAQ", "faq")
+        ]),
+        el("div", {class:"g-actions"}, [
+          el("button", {class:"link-btn", onclick:function(){ goTo("home"); }}, ["Login"]),
+          el("button", {class:"btn grad-btn btn-sm", onclick:function(){ goTo("home"); }}, ["Start learning"])
+        ])
+      ])
+    ]));
+
+    // ---- hero ----
+    var hero = el("div", {class:"g-hero g-wrap"}, [
+      el("span", {class:"g-kicker"}, [el("span",{class:"d"}), "Free to start · Medicine & Nursing"]),
+      el("h1", {class:"disp"}, ["Practice medicine, before the ", el("span",{class:"grad-text"},["stakes are real"]), "."]),
+      el("p", {class:"g-lede"}, ["Casebook is a case-based training ground for med and nursing students: interview an AI patient, gather evidence, commit to a diagnosis, and get graded — organized by organ system, starting at Step 1."]),
+      el("div", {class:"g-hero-ctas"}, [
+        el("button", {class:"btn grad-btn", onclick:function(){ goTo("home"); }}, ["Start learning free", el("span",{class:"btn-arrow"},["→"])]),
+        el("button", {class:"btn btn-ghost", style:"background:var(--surface-2); color:var(--text); border:1px solid var(--border);", onclick:function(){ scrollToId("how"); }}, ["See how it works"])
+      ]),
+      el("p", {class:"g-fine"}, ["12 organ-system units · No credit card · Built around real clinical reasoning"])
+    ]);
+    wrap.appendChild(hero);
+
+    // ---- product mockup card ----
+    wrap.appendChild(buildMockCard());
+
+    // ---- problem ----
+    wrap.appendChild(el("div", {class:"g-section tight g-wrap reveal"}, [
+      el("div", {class:"g-head"}, [
+        el("span", {class:"g-kicker"}, ["The problem"]),
+        el("h2", {class:"disp"}, ["Clinicals come too late to learn from your mistakes."]),
+        el("p", {}, ["Most students get their first real differential-diagnosis reps in front of an actual patient. Casebook moves those reps earlier — unlimited AI patients, zero risk, and feedback on exactly what you missed, every single time."])
+      ])
+    ]));
+
+    wrap.appendChild(el("hr", {class:"grad-divider g-wrap"}));
+
+    // ---- how it works ----
+    wrap.appendChild(el("div", {class:"g-section g-wrap reveal", id:"how"}, [
+      el("div", {class:"g-head center"}, [
+        el("span", {class:"g-kicker"}, ["How it works"]),
+        el("h2", {class:"disp"}, ["From conversation to verdict"])
+      ]),
+      el("div", {class:"step-grid"}, [
+        step("1","Interview","Talk to an AI patient who answers in character — nothing is handed to you."),
+        step("2","Evidence","Order the labs, imaging, or assessments you think matter. Pay for what you don't need."),
+        step("3","Diagnosis","Pick your leading diagnosis from a board-style multiple choice, then write your plan."),
+        step("4","Feedback","Get graded on accuracy, evidence choices, and exactly what you missed.")
+      ])
+    ]));
+
+    // ---- tracks ----
+    wrap.appendChild(el("div", {class:"g-section g-wrap reveal", id:"tracks"}, [
+      el("div", {class:"g-head center"}, [
+        el("span", {class:"g-kicker"}, ["Two tracks, one spine"]),
+        el("h2", {class:"disp"}, ["Built for where you are"])
+      ]),
+      el("div", {class:"g-track-grid"}, TRACK_ORDER.map(function(key){
+        var cfg = TRACKS[key];
+        return el("button", {class:"g-track-card track-" + key, onclick:function(){ goTo(key); }}, [
+          el("span", {class:"k", style:"display:inline-flex; align-items:center; gap:6px; background:#fff; color:var(--accent); font-size:11px; font-weight:700; padding:4px 10px; border-radius:999px;"}, [cfg.tierLabel]),
+          el("h3", {class:"disp"}, [cfg.label]),
+          el("p", {}, [cfg.shortDesc]),
+          el("span", {class:"link-btn"}, ["Explore " + cfg.label, " →"])
+        ]);
+      }))
+    ]));
+
+    wrap.appendChild(el("hr", {class:"grad-divider g-wrap"}));
+
+    // ---- pricing ----
+    wrap.appendChild(el("div", {class:"g-section g-wrap reveal", id:"pricing"}, [
+      el("div", {class:"g-head center"}, [
+        el("span", {class:"g-kicker"}, ["Pricing"]),
+        el("h2", {class:"disp"}, ["Start free. Upgrade when you're hooked."])
+      ]),
+      el("div", {class:"price-grid", style:"margin:0 auto;"}, [
+        el("div", {class:"price-card"}, [
+          el("h4", {}, ["Free"]),
+          el("div", {class:"amt disp"}, ["$0"]),
+          el("ul", {}, [li("3 cases per unit"), li("Medicine & Nursing tracks"), li("Quick-check quizzes")]),
+          el("button", {class:"btn btn-dark", style:"width:100%; justify-content:center;", onclick:function(){ goTo("home"); }}, ["Start free"])
+        ]),
+        el("div", {class:"price-card featured"}, [
+          el("span", {class:"badge"}, ["Coming soon"]),
+          el("h4", {}, ["Pro"]),
+          el("div", {class:"amt disp"}, ["$12", el("span",{},[" / mo"])]),
+          el("ul", {}, [li("Unlimited cases"), li("Full step tier roadmap"), li("Priority grading")]),
+          el("button", {class:"btn grad-btn", style:"width:100%; justify-content:center;", disabled:true}, ["Join waitlist"])
+        ])
+      ])
+    ]));
+
+    // ---- FAQ ----
+    wrap.appendChild(el("div", {class:"g-section tight g-wrap reveal", id:"faq"}, [
+      el("div", {class:"g-head"}, [
+        el("span", {class:"g-kicker"}, ["FAQ"]),
+        el("h2", {class:"disp"}, ["Questions worth asking"])
+      ]),
+      faq("Is this a real medical device or clinical tool?", "No. Casebook is an educational practice tool only — it's not for diagnosing real patients or making real clinical decisions."),
+      faq("Do I need to create an account?", "Not yet — Login currently drops you straight into the training app so you can try everything without friction."),
+      faq("How are cases generated?", "Each case is generated live by Claude, scoped to the organ system you pick, so no two runs are identical."),
+      faq("Is my progress saved?", "Progress is saved in your browser so it's there next time you open Casebook on this device.")
+    ]));
+
+    // ---- footer ----
+    wrap.appendChild(el("div", {class:"g-footer g-wrap"}, [
+      el("div", {class:"g-logo"}, [el("span",{class:"dot"}), "Casebook"]),
+      el("p", {class:"f-disclaimer"}, ["Educational practice tool only. Not a certified medical device and not a substitute for clinical training or supervision."])
+    ]));
+
+    return wrap;
+  }
+
+  function anchorLink(label, id){
+    return el("a", {onclick:function(){ scrollToId(id); }}, [label]);
+  }
+  function scrollToId(id){
+    requestAnimationFrame(function(){
+      var node = document.getElementById(id);
+      if (node) node.scrollIntoView({behavior:"smooth", block:"start"});
+    });
+  }
+  function step(n, title, desc){
+    return el("div", {class:"step-card2"}, [
+      el("span", {class:"n"}, [n]),
+      el("h4", {}, [title]),
+      el("p", {}, [desc])
+    ]);
+  }
+  function li(text){ return el("li", {}, [text]); }
+  function faq(q, a){
+    return el("details", {class:"faq-item"}, [
+      el("summary", {}, [q]),
+      el("p", {}, [a])
+    ]);
+  }
+
+  function buildMockCard(){
+    var sampleUnits = UNITS.slice(0,5);
+    var nodes = sampleUnits.map(function(u, i){
+      return el("div", {class:"mock-node-wrap"}, [
+        el("div", {class:"mock-node", style:"background:" + u.color + ";"}, [i===1 ? "✓" : u.mono]),
+        el("div", {class:"mock-node-label"}, [u.label])
+      ]);
+    });
+    return el("div", {class:"mock-card reveal"}, [
+      el("div", {class:"mock-chrome"}, [
+        el("span",{class:"mdot"}), el("span",{class:"mdot"}), el("span",{class:"mdot"}),
+        el("span", {class:"mock-crumb"}, ["casebook — medicine · step 1"])
+      ]),
+      el("div", {class:"mock-body"}, [
+        el("div", {class:"mock-path"}, nodes),
+        el("div", {class:"mock-divider2"}),
+        el("div", {class:"mock-feedback"}, [
+          el("div", {class:"mscore"}, ["92"]),
+          el("div", {class:"mtxt"}, [
+            el("div", {class:"m1"}, ["Correct · Iron deficiency anemia ✓"]),
+            el("div", {class:"m2"}, ["Graded on evidence gathering and treatment plan"])
+          ])
+        ])
+      ])
+    ]);
+  }
+
+  function renderSidebar(){
+    var items = [
+      {page:"home", icon:"⌂", label:"Home"},
+      {page:"medicine", icon:"📘", label:"Medicine"},
+      {page:"nursing", icon:"🩺", label:"Nursing"}
+    ];
+    if (state.track){
+      items.push({page:"case", icon:"📄", label:"Active case"});
+      items.push({page:"quiz", icon:"❓", label:"Quick check"});
+    }
+
+    var nav = el("div", {class:"side-nav"}, items.map(function(it){
+      return el("button", {class:"side-link" + (state.page===it.page ? " active" : ""), onclick:function(){ goTo(it.page); }}, [
+        el("span", {class:"ic"}, [it.icon]), it.label
+      ]);
+    }));
+
+    return el("div", {class:"sidebar"}, [
+      el("button", {class:"wordmark", style:"background:none; border:none; cursor:pointer; width:100%; text-align:left;", onclick:function(){ goTo("gate"); }}, [el("span",{class:"dot"}), el("span",{class:"word"},["Casebook"])]),
+      nav,
+      el("div", {class:"side-foot"}, [
+        el("div", {class:"toggle-row"}, [
+          el("span", {}, ["Builder mode"]),
+          el("button", {class:"switch" + (state.builderMode ? " on" : ""), onclick:toggleBuilderMode}, [el("span",{class:"knob"})])
+        ])
+      ])
+    ]);
+  }
+
+  function renderHome(){
+    var wrap = el("div", {});
+
+    var hero = el("div", {class:"hero-card"}, [
+      el("span", {class:"hero-badge"}, [el("span",{class:"tag"},["NEW"]), "The Step 1 path is live", el("span",{},["→"])]),
+      el("h1", {class:"disp"}, ["Practice the hard part before it ", el("span",{class:"accent"},["counts"]), "."]),
+      el("p", {class:"lede"}, ["Interview a patient, gather the evidence, commit to a call, get graded — organized by organ system, starting right where med and nursing school does."]),
+      el("div", {class:"hero-ctas"}, [
+        el("button", {class:"btn btn-brand", onclick:function(){ goTo("medicine"); }}, ["Start Medicine", el("span",{class:"btn-arrow"},["→"])]),
+        el("button", {class:"btn btn-ghost", onclick:function(){ goTo("nursing"); }}, ["Start Nursing"])
+      ])
+    ]);
+    wrap.appendChild(hero);
+
+    wrap.appendChild(el("div", {class:"stat-row"}, [
+      statCard("12", "organ-system units"),
+      statCard(trackCompletion("medicine") + "%", "Medicine complete"),
+      statCard(trackCompletion("nursing") + "%", "Nursing complete"),
+      statCard(state.builderMode ? "All" : "Gated", "unit access")
+    ]));
+
+    wrap.appendChild(el("div", {class:"track-grid"}, TRACK_ORDER.map(function(key){
+      var cfg = TRACKS[key];
+      var pct = trackCompletion(key);
+      return el("button", {class:"track-card2 track-" + key, onclick:function(){ goTo(key); }}, [
+        el("span", {class:"k"}, [cfg.tierLabel]),
+        el("h3", {class:"disp"}, [cfg.label]),
+        el("p", {}, [cfg.shortDesc]),
+        el("div", {class:"pbar"}, [el("i", {style:"width:" + pct + "%; background:var(--accent);"})]),
+        el("div", {class:"pct mono"}, [pct + "% complete"])
+      ]);
+    })));
+
+    return wrap;
+  }
+
+  function statCard(v, l){
+    return el("div", {class:"stat-card"}, [el("div",{class:"v disp"},[v]), el("div",{class:"l"},[l])]);
+  }
+
+  function renderPath(trackKey){
+    var cfg = trackCfg(trackKey);
+    var wrap = el("div", {class:"track-" + trackKey});
+    var card = el("div", {class:"card"});
+
+    card.appendChild(el("div", {class:"path-top-row"}, [
+      el("span", {class:"tier-badge"}, [el("span",{},["◆"]), cfg.tierLabel + " · " + cfg.tierSub]),
+      el("span", {class:"mono", style:"font-size:12px; color:var(--text-dim);"}, [trackCompletion(trackKey) + "% complete"])
+    ]));
+
+    if (state.justUnlocked && state.track === trackKey){
+      card.appendChild(el("div", {class:"unlock-banner"}, ["🎉 " + state.justUnlocked + " unlocked!"]));
+      state.justUnlocked = null;
+    }
+
+    var scrollWrap = el("div", {class:"hpath-scroll"});
+    var path = el("div", {class:"hpath"});
+    var firstActionable = null;
+    UNITS.forEach(function(u, idx){
+      var unlocked = isUnitUnlocked(trackKey, idx);
+      var prog = unitProgress(trackKey, u.key);
+      var complete = prog.attempts >= PASS_THRESHOLD;
+      if (unlocked && !complete && firstActionable === null) firstActionable = u.key;
+
+      var node = el("button", {
+        class:"unit-node" + (unlocked ? "" : " locked"),
+        style: unlocked ? ("background:" + u.color + ";") : "",
+        onclick: function(){ if (unlocked) startCase(trackKey, u.key); }
+      }, unlocked ? [u.mono] : [el("span",{class:"lock-ic"},["🔒"])]);
+      if (complete) node.appendChild(el("span", {class:"check"}, ["✓"]));
+
+      path.appendChild(el("div", {class:"unit-wrap"}, [
+        node,
+        el("div", {class:"unit-label"}, [u.label]),
+        unlocked ? el("div", {class:"unit-reps mono"}, [Math.min(prog.attempts,PASS_THRESHOLD) + "/" + PASS_THRESHOLD]) : null,
+        (unlocked && u.key === firstActionable) ? el("div", {class:"start-pill"}, [prog.attempts===0 ? "START" : "CONTINUE"]) : null
+      ]));
+    });
+    scrollWrap.appendChild(path);
+    card.appendChild(scrollWrap);
+    wrap.appendChild(card);
+
+    var future = el("div", {class:"future-tiers"});
+    future.appendChild(el("span", {class:"sc"}, ["Coming later"]));
+    cfg.futureTiers.forEach(function(t){
+      future.appendChild(el("div", {class:"future-row"}, [
+        el("div", {}, [el("div",{class:"ft-name"},[t.name]), el("div",{class:"ft-sub"},[t.sub])]),
+        el("span", {class:"lock-ic"}, ["🔒"])
+      ]));
+    });
+    wrap.appendChild(future);
+
+    return wrap;
+  }
+
+  function renderCasePage(){
+    if (!state.caseData){
+      return el("div", {class:"card"}, [
+        el("p", {class:"placeholder-note"}, ["No active case yet. Start one from the Medicine or Nursing skill path."]),
+        el("div", {style:"display:flex; gap:10px; justify-content:center;"}, [
+          el("button", {class:"btn", onclick:function(){ goTo("medicine"); }}, ["Go to Medicine"]),
+          el("button", {class:"btn btn-dark", onclick:function(){ goTo("nursing"); }}, ["Go to Nursing"])
+        ])
+      ]);
+    }
+    if (state.caseStage === "loading"){
+      return el("div", {class:"intro"}, [
+        el("div", {class:"spinner"}),
+        el("div", {class:"status mono"}, ["Building a new case…"])
+      ]);
+    }
+
+    var wrap = el("div", {});
+    wrap.appendChild(renderCaseHeader());
+    var card = el("div", {class:"card"});
+    if (state.errorMsg) card.appendChild(el("div", {class:"notice"}, [state.errorMsg]));
+
+    if (state.caseStage === "interview") card.appendChild(renderInterview());
+    else if (state.caseStage === "evidence") card.appendChild(renderEvidence());
+    else if (state.caseStage === "assessment") card.appendChild(renderAssessment());
+    else if (state.caseStage === "feedback") card.appendChild(renderFeedback());
+    wrap.appendChild(card);
+    return wrap;
+  }
+
+  function renderCaseHeader(){
+    var c = state.caseData, cfg = trackCfg(), unit = unitCfg();
+    var stages = [
+      {key:"interview", label:"Interview"},
+      {key:"evidence", label:"Evidence"},
+      {key:"assessment", label:cfg.conclusionLabel},
+      {key:"feedback", label:"Feedback"}
+    ];
+    var order = ["interview","evidence","assessment","feedback"];
+    var currentIdx = order.indexOf(state.caseStage);
+
+    var tabEls = stages.map(function(s){
+      var idx = order.indexOf(s.key);
+      var classes = "tab" + (state.caseStage===s.key ? " active" : "") + (idx<currentIdx ? " done" : "");
+      return el("button", {class:classes, onclick: function(){ state.caseStage = s.key; render(); }}, [s.label]);
+    });
+
+    return el("div", {class:"card", style:"margin-bottom:16px;"}, [
+      el("div", {class:"case-head-row"}, [
+        el("div", {style:"display:flex; align-items:center; gap:8px; flex-wrap:wrap;"}, [
+          el("span", {class:"unit-pill"}, [el("span",{class:"sw"}), unit.label]),
+          c.generated
+            ? el("span", {class:"unit-pill", style:"background:var(--warn-soft); color:var(--warn);"}, ["AI-generated"])
+            : el("span", {class:"unit-pill", style:"background:var(--good-soft); color:var(--good);"}, ["Reference case"])
+        ]),
+        el("div", {style:"display:flex; align-items:center; gap:14px;"}, [
+          el("button", {class:"link-btn", onclick:generateAICase}, ["New AI case ↻"]),
+          el("span", {class:"mono", id:"case-timer", style:"font-size:12px; color:var(--text-dim);"}, [elapsed()])
+        ])
+      ]),
+      el("h2", {class:"subject-name"}, [c.subjectName]),
+      el("p", {class:"subject-summary"}, [c.subjectSummary]),
+      el("p", {class:"presenting"}, [el("span",{class:"sc"},["Presenting"]), " " + c.presentingIssue]),
+      el("div", {class:"snapshot mono"}, c.snapshotFacts.map(function(f){
+        return el("span", {}, [el("span",{class:"l"},[f.label+" "]), f.value]);
+      })),
+      el("div", {class:"tabs"}, tabEls)
+    ]);
+  }
+
+  function renderInterview(){
+    var c = state.caseData;
+    var wrap = el("div", {});
+    var log = el("div", {class:"transcript", id:"transcript"});
+
+    if (state.scriptedOpener){
+      log.appendChild(el("div", {class:"line them"}, [
+        el("div", {class:"who"}, [c.subjectName]),
+        el("p", {}, ["Thanks for seeing me. It's " + c.presentingIssue + ". Here's what's been going on..."])
+      ]));
+      c.backgroundFacts.slice(0,5).forEach(function(f){
+        log.appendChild(el("div", {class:"line them"}, [
+          el("div", {class:"who"}, [c.subjectName]),
+          el("p", {}, [f])
+        ]));
+      });
+    } else {
+      state.chatTurns.forEach(function(t, i){
+        if (i === 0) return;
+        log.appendChild(el("div", {class:"line " + (t.role==="user" ? "me" : "them")}, [
+          el("div", {class:"who"}, [t.role==="user" ? "You" : c.subjectName]),
+          el("p", {}, [t.content])
+        ]));
+      });
+      if (state.chatBusy && !document.getElementById("streaming-line")){
+        log.appendChild(el("div", {class:"line them typing"}, [
+          el("div", {class:"who"}, [c.subjectName]),
+          el("p", {}, ["..."])
+        ]));
+      }
+    }
+    wrap.appendChild(log);
+
+    if (!state.scriptedOpener){
+      var input = el("input", {type:"text", placeholder: state.chatBusy ? "Waiting for a reply..." : "Ask " + c.subjectName.split(" ")[0] + " something...", id:"chat-text"});
+      if (state.chatBusy) input.setAttribute("disabled","disabled");
+      input.addEventListener("keydown", function(ev){
+        if (ev.key === "Enter"){ ev.preventDefault(); sendYourMessage(input.value); input.value=""; }
+      });
+      var sendBtn = el("button", {class:"link-btn", onclick:function(){
+        var box = document.getElementById("chat-text");
+        sendYourMessage(box.value); box.value="";
+      }}, ["Ask"]);
+      if (state.chatBusy) sendBtn.setAttribute("disabled","disabled");
+      wrap.appendChild(el("div", {class:"ask-row"}, [input, sendBtn]));
+    } else {
+      wrap.appendChild(el("p", {class:"scripted-note"}, ["Live back-and-forth needs Claude access for this page, so the background is shown directly here instead."]));
+    }
+
+    wrap.appendChild(el("div", {class:"panel-actions"}, [
+      el("button", {class:"btn", onclick:function(){ state.caseStage = "evidence"; render(); }}, ["Proceed to evidence", el("span",{class:"btn-arrow"},["→"])])
+    ]));
+    return wrap;
+  }
+
+  function renderEvidence(){
+    var c = state.caseData, cfg = trackCfg();
+    var wrap = el("div", {});
+
+    wrap.appendChild(el("div", {class:"initial-assessment"}, [
+      el("span", {class:"sc"}, ["Initial assessment"]),
+      c.initialAssessment
+    ]));
+
+    cfg.evidenceCategories.forEach(function(cat){
+      var items = c.evidenceItems.filter(function(t){ return t.category === cat; });
+      if (!items.length) return;
+      var group = el("div", {class:"ev-group"});
+      group.appendChild(el("h4", {}, [cat]));
+      items.forEach(function(t){
+        var status = state.evidenceStatus[t.id];
+        var selected = state.orderedIds.indexOf(t.id) !== -1;
+        var row = el("div", {class:"ev-row" + (!status ? " pickable" : ""), onclick: function(){ if(!status) toggleEvidence(t.id); }}, [
+          !status ? el("input", {type:"checkbox", checked: selected, onclick:function(ev){ev.stopPropagation();}, onchange:function(){toggleEvidence(t.id);}}) : el("span",{style:"width:16px;"}),
+          el("div", {class:"ev-name"}, [t.name])
+        ]);
+        if (status === "ordered") row.appendChild(el("div", {class:"ev-result mono"}, ["pending…"]));
+        else if (status === "done") row.appendChild(el("div", {class:"ev-result"}, [t.significant ? el("span",{class:"dot"}) : null, t.result].filter(Boolean)));
+        group.appendChild(row);
+      });
+      wrap.appendChild(group);
+    });
+
+    var pendingCount = state.orderedIds.filter(function(id){ return !state.evidenceStatus[id]; }).length;
+    wrap.appendChild(el("div", {class:"ev-actions"}, [
+      el("div", {class:"selected-count"}, [pendingCount + " selected"]),
+      el("button", {class:"btn", disabled: pendingCount===0, onclick: orderSelectedEvidence}, ["Pull selected evidence"])
+    ]));
+
+    wrap.appendChild(el("div", {class:"panel-actions"}, [
+      el("button", {class:"btn", onclick:function(){ state.caseStage = "assessment"; render(); }}, ["Proceed to " + cfg.conclusionLabel.toLowerCase(), el("span",{class:"btn-arrow"},["→"])])
+    ]));
+    return wrap;
+  }
+
+  function renderAssessment(){
+    var cfg = trackCfg(), c = state.caseData;
+    var wrap = el("div", {});
+
+    var select = el("select", {id:"dx-select", onchange:function(ev){
+      state.selectedConclusion = ev.target.value;
+      var btn = document.getElementById("submit-btn");
+      if (btn) btn.disabled = !state.selectedConclusion || state.assessmentBusy;
+    }}, [
+      el("option", {value:""}, ["— choose your leading " + cfg.conclusionLabel.toLowerCase() + " —"])
+    ].concat(c.conclusionOptions.map(function(opt){
+      return el("option", {value:opt, selected: state.selectedConclusion === opt}, [opt]);
+    })));
+
+    wrap.appendChild(el("div", {class:"field"}, [
+      el("label", {}, [cfg.conclusionLabel]),
+      select,
+      el("div", {class:"hint"}, ["Multiple choice, board-style — one best answer."])
+    ]));
+    wrap.appendChild(el("div", {class:"field"}, [
+      el("label", {}, [cfg.actionLabel]),
+      el("textarea", {id:"tx-input", placeholder:"What would you do next?"})
+    ]));
+
+    var submitBtn = el("button", {class:"btn", id:"submit-btn", disabled: !state.selectedConclusion || state.assessmentBusy, onclick:function(){
+      var tx = document.getElementById("tx-input").value;
+      submitAssessment(tx);
+    }}, [state.assessmentBusy ? "Grading…" : "Submit for grading"]);
+
+    wrap.appendChild(el("div", {class:"panel-actions"}, [submitBtn]));
+    return wrap;
+  }
+
+  function renderFeedback(){
+    var f = state.feedback;
+    if (!f){
+      return el("p", {class:"placeholder-note"}, ["No assessment submitted yet — finish the Diagnosis step first."]);
+    }
+    var c = state.caseData, cfg = trackCfg();
+    var tier = f.overallScore >= 80 ? "good" : (f.overallScore >= 50 ? "warn" : "bad");
+    var verdictLabel = f.verdict === "correct" ? "Correct" : (f.verdict === "partially_correct" ? "Partially correct" : "Incorrect");
+
+    var wrap = el("div", {});
+    wrap.appendChild(el("div", {class:"score-row"}, [
+      el("div", {class:"score-num disp " + tier}, [String(f.overallScore)]),
+      el("div", {}, [
+        el("div", {class:"verdict-pill " + tier}, [verdictLabel]),
+        el("div", {class:"you-said"}, ["You picked: “" + state.selectedConclusion + "” " + (f.conclusionCorrect ? "✓" : "✗")])
+      ])
+    ]));
+
+    wrap.appendChild(el("div", {class:"reveal"}, [
+      el("div", {class:"sc"}, ["Correct " + cfg.conclusionLabel.toLowerCase()]),
+      el("div", {class:"dx"}, [c.conclusion]),
+      el("p", {style:"margin:8px 0 0; font-size:13.5px; color:var(--text-dim); line-height:1.5;"}, [c.conclusionExplanation])
+    ]));
+
+    wrap.appendChild(el("div", {class:"fb-block"}, [el("h4",{},["On your " + cfg.actionLabel.toLowerCase()]), el("p",{},[f.actionFeedback || ""])]));
+    wrap.appendChild(el("div", {class:"fb-block"}, [el("h4",{},["On your evidence gathering"]), el("p",{},[f.evidenceFeedback || ""])]));
+
+    if (f.missedConsiderations && f.missedConsiderations.length){
+      var list = el("ul", {class:"flag-list"});
+      f.missedConsiderations.forEach(function(r){ list.appendChild(el("li",{},[r])); });
+      wrap.appendChild(el("div", {class:"fb-block"}, [el("h4",{},["What you didn't catch"]), list]));
+    }
+
+    wrap.appendChild(el("div", {class:"outcome"}, [el("span",{class:"sc"},["What happens next"]), f.outcome || ""]));
+
+    wrap.appendChild(el("div", {class:"panel-actions"}, [
+      el("button", {class:"link-btn", onclick:startQuiz}, ["Quick check quiz →"]),
+      el("button", {class:"btn", onclick:finishUnit}, ["Continue", el("span",{class:"btn-arrow"},["→"])])
+    ]));
+    return wrap;
+  }
+
+  function renderQuiz(){
+    var wrap = el("div", {class:"card" + (state.track ? " track-" + state.track : "")});
+
+    if (!state.track || !state.unit){
+      wrap.appendChild(el("p", {class:"placeholder-note"}, [state.errorMsg || "Start a case first to get a quick check for that unit."]));
+      wrap.appendChild(el("div", {style:"display:flex; gap:10px; justify-content:center;"}, [
+        el("button", {class:"btn", onclick:function(){ goTo("medicine"); }}, ["Go to Medicine"]),
+        el("button", {class:"btn btn-dark", onclick:function(){ goTo("nursing"); }}, ["Go to Nursing"])
+      ]));
+      return wrap;
+    }
+
+    var unit = unitCfg(), cfg = trackCfg();
+
+    if (state.quizStatus === "loading"){
+      wrap.appendChild(el("div", {class:"intro"}, [
+        el("div", {class:"spinner"}),
+        el("div", {class:"status mono"}, ["Writing a quick check…"])
+      ]));
+      return wrap;
+    }
+    if (state.quizStatus === "error"){
+      wrap.appendChild(el("div", {class:"notice"}, [state.errorMsg || "Couldn't build a quiz."]));
+      wrap.appendChild(el("button", {class:"link-btn", onclick:startQuiz}, ["Try again"]));
+      return wrap;
+    }
+    if (state.quizStatus === "done"){
+      var pct = Math.round(state.quizScore / state.quiz.length * 100);
+      wrap.appendChild(el("div", {class:"intro"}, [
+        el("div", {class:"quiz-score " + (pct>=80?"good":pct>=50?"warn":"bad")}, [state.quizScore + "/" + state.quiz.length]),
+        el("p", {style:"color:var(--text-dim); font-size:13px;"}, ["Quick check · " + unit.label]),
+        el("div", {style:"display:flex; gap:12px; margin-top:8px;"}, [
+          el("button", {class:"btn", onclick:function(){ goTo(state.track); }}, ["Back to skill path"]),
+          el("button", {class:"link-btn", onclick:startQuiz}, ["Try another set →"])
+        ])
+      ]));
+      return wrap;
+    }
+
+    var q = state.quiz[state.quizIndex];
+    wrap.appendChild(el("div", {class:"quiz-top"}, [
+      el("span", {class:"unit-pill"}, [cfg.label + " · " + unit.label]),
+      el("span", {class:"mono", style:"font-size:12px; color:var(--text-dim);"}, [(state.quizIndex+1) + " / " + state.quiz.length])
+    ]));
+    wrap.appendChild(el("h2", {class:"quiz-q"}, [q.question]));
+
+    var optsWrap = el("div", {});
+    q.options.forEach(function(opt, i){
+      var picked = state.quizPicked;
+      var cls = "quiz-opt";
+      if (picked !== null){
+        if (i === q.correctIndex) cls += " correct";
+        else if (i === picked) cls += " wrong";
+      }
+      optsWrap.appendChild(el("button", {class:cls, disabled: picked!==null, onclick:function(){ pickQuizAnswer(i); }}, [
+        opt,
+        picked!==null && i===q.correctIndex ? el("span",{},["✓"]) : null,
+        picked!==null && i===picked && i!==q.correctIndex ? el("span",{},["✗"]) : null
+      ].filter(function(x){return x!==null;})));
+    });
+    wrap.appendChild(optsWrap);
+
+    if (state.quizPicked !== null){
+      wrap.appendChild(el("div", {class:"quiz-explain"}, [q.explanation]));
+    }
+
+    wrap.appendChild(el("div", {class:"panel-actions"}, [
+      el("button", {class:"btn", disabled: state.quizPicked===null, onclick:nextQuizQuestion}, [(state.quizIndex+1 >= state.quiz.length ? "Finish" : "Next"), el("span",{class:"btn-arrow"},["→"])])
+    ]));
+    return wrap;
+  }
+
+  state.page = readHash();
+  render();
+})();
+</script>
