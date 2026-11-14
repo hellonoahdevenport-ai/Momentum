@@ -397,7 +397,34 @@ export const dorothyKesslerCase: CaseFile = {
     sampleAnswer:
       "Keep the head of the bed elevated to ease her breathing, and administer the ordered diuretic while tracking strict intake and output and daily weights at the same time each day. Reassess lung sounds, SpO2, and respiratory effort after the diuretic takes effect to confirm improvement. Reinforce education about sodium and fluid restriction, since the recent wedding and salty food likely contributed to this decompensation, and notify the provider if her respiratory status doesn't improve with treatment. This is general nursing-process reasoning for a learning exercise, not facility-specific protocol.",
   },
-  unfoldingEvent: null,
+  unfoldingEvent: {
+    trigger: "Not long after your plan is underway, Dorothy's breathing changes.",
+    prompt:
+      "Dorothy's call light goes on. She says she suddenly feels more short of breath, and her oxygen saturation has dropped a few points on the monitor. What do you do first?",
+    choices: [
+      {
+        id: "reassess-elevate-notify",
+        label: "Reassess her right away, raise the head of the bed, recheck lung sounds, and notify the provider.",
+        isSaferChoice: true,
+        consequence:
+          "Acute worsening dyspnea with a falling oxygen saturation in a fluid-overloaded heart failure patient needs an immediate bedside reassessment — positioning to ease breathing and prompt provider notification are the right first moves while you gather more data.",
+      },
+      {
+        id: "wait-next-rounds",
+        label: "Reassure her it's expected with heart failure and check back at your next scheduled rounds.",
+        isSaferChoice: false,
+        consequence:
+          "Treating a new, acute symptom as \"expected\" without reassessment risks missing real decompensation. A sudden change in breathing and oxygenation is a new finding that needs evaluation now, not at the next routine round.",
+      },
+      {
+        id: "increase-iv-fluids",
+        label: "Increase her IV fluid rate in case she's become dehydrated from the diuretic.",
+        isSaferChoice: false,
+        consequence:
+          "This is actively the wrong direction: a heart failure patient with worsening dyspnea and dropping oxygenation is more likely fluid-overloaded, not dehydrated. Giving more fluid without reassessment could make an evolving pulmonary edema picture worse.",
+      },
+    ],
+  },
   debrief: {
     correctConclusionLabel: "Priority nursing diagnosis",
     correctConclusion: "Fluid volume excess with risk for impaired gas exchange related to heart failure decompensation",

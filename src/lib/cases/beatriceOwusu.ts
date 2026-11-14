@@ -374,7 +374,34 @@ export const beatriceOwusuCase: CaseFile = {
     sampleAnswer:
       "Keep Beatrice NPO and hold the breakfast tray until speech-language pathology completes a formal swallow evaluation, explaining to her and her daughter why this matters even though she's hungry. Continue to monitor voice quality, cough strength, and any respiratory changes, and position her upright for any future oral intake once a safe diet texture is identified. Notify the provider and care team of the failed bedside screen and the pending consult so the order set reflects her actual status. This is general nursing-process reasoning for a learning exercise, not facility-specific protocol.",
   },
-  unfoldingEvent: null,
+  unfoldingEvent: {
+    trigger: "While you're finishing your plan, something happens on the unit.",
+    prompt:
+      "A family member, trying to help, is about to hand Beatrice a cup of water — she hasn't had her swallow screen yet and is supposed to stay NPO until it's done. What do you do?",
+    choices: [
+      {
+        id: "intervene-explain-npo",
+        label: "Step in right away, stop the water, and explain kindly why she needs to stay NPO until the screen is done.",
+        isSaferChoice: true,
+        consequence:
+          "Intervening immediately prevents a real aspiration risk and gives you a chance to explain the reasoning to the family so they can help keep her safe going forward — exactly the kind of in-the-moment advocacy this stage of post-stroke care calls for.",
+      },
+      {
+        id: "allow-small-sip",
+        label: "Let her have a small sip since she seems to be talking normally and looks fine.",
+        isSaferChoice: false,
+        consequence:
+          "Looking and sounding fine isn't the same as having a safe swallow — that's exactly why a structured screen exists before any oral intake. Allowing even a small sip before it's done risks silent aspiration.",
+      },
+      {
+        id: "let-it-happen-flag-later",
+        label: "Let it happen this once and make a note to prioritize the swallow screen afterward.",
+        isSaferChoice: false,
+        consequence:
+          "Letting an NPO order lapse \"just this once\" removes the safeguard it exists for. The right response is to prevent the unsafe intake before it happens, not to address it after the fact.",
+      },
+    ],
+  },
   debrief: {
     correctConclusionLabel: "Priority nursing diagnosis",
     correctConclusion: "Risk for aspiration related to post-stroke dysphagia",

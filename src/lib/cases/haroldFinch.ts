@@ -397,7 +397,34 @@ export const haroldFinchCase: CaseFile = {
     sampleAnswer:
       "Draw blood cultures first, then start empiric broad-spectrum antibiotics promptly given the likely pulmonary source, and begin IV fluid resuscitation to address the hypotension. Supplement oxygen for his low SpO2 and reassess his mental status, blood pressure, and lactate closely over the next few hours to track response. Have a low threshold to escalate to a higher level of care if he doesn't improve or worsens. This is general reasoning for a learning exercise, not patient-specific dosing or protocol guidance.",
   },
-  unfoldingEvent: null,
+  unfoldingEvent: {
+    trigger: "Shortly after your plan is in motion, Harold's status shifts again.",
+    prompt:
+      "A nurse flags you down: Harold's blood pressure has dropped further since the initial fluids, and he's now more confused than when he arrived. What's the right next move?",
+    choices: [
+      {
+        id: "reassess-escalate",
+        label: "Reassess him now, give additional fluids per protocol, and escalate for a higher level of care.",
+        isSaferChoice: true,
+        consequence:
+          "Worsening hypotension and mental status after initial resuscitation is a sign this may be progressing toward septic shock. Reassessing and escalating promptly — rather than waiting for the next scheduled check — is what sepsis protocols are built around.",
+      },
+      {
+        id: "wait-next-vitals",
+        label: "Note it and plan to recheck at the next scheduled vital-sign check.",
+        isSaferChoice: false,
+        consequence:
+          "In an elderly patient already showing high-risk signs, waiting for a routine recheck lets a deteriorating trend go unaddressed. Sepsis can progress quickly, and a new drop in blood pressure plus worsening confusion both warrant immediate reassessment.",
+      },
+      {
+        id: "order-more-imaging",
+        label: "Order an additional imaging study before deciding on next steps.",
+        isSaferChoice: false,
+        consequence:
+          "More imaging might eventually be useful, but ordering it now delays addressing an unstable patient's hemodynamics. The priority in a worsening septic picture is reassessment and escalation, not another test.",
+      },
+    ],
+  },
   debrief: {
     correctConclusionLabel: "Diagnosis",
     correctConclusion: "Sepsis, likely from a pulmonary source",

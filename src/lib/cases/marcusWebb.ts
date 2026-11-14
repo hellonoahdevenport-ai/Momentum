@@ -375,7 +375,34 @@ export const marcusWebbCase: CaseFile = {
     sampleAnswer:
       "Give aspirin promptly, place Marcus on continuous cardiac monitoring, and treat pain with nitroglycerin or another appropriate agent if not hypotensive. Obtain urgent cardiology consultation given the ECG and troponin findings for consideration of catheterization. Once stabilized, counsel on smoking cessation and address his elevated LDL and blood pressure as part of secondary prevention. This is general reasoning for a learning exercise, not patient-specific dosing guidance.",
   },
-  unfoldingEvent: null,
+  unfoldingEvent: {
+    trigger: "A few minutes after you finish outlining your plan, Marcus's condition changes.",
+    prompt:
+      "Marcus suddenly grips the rail and says the pressure in his chest \"just got a lot worse,\" and he looks grayer and more diaphoretic than before. The monitor shows his heart rate climbing. What do you do?",
+    choices: [
+      {
+        id: "escalate-now",
+        label: "Stop, reassess immediately, and escalate for urgent evaluation and repeat ECG.",
+        isSaferChoice: true,
+        consequence:
+          "A repeat ECG is obtained right away and shows new changes. Acting on the change immediately — rather than finishing your original plan first — is what catches an evolving MI in time to matter.",
+      },
+      {
+        id: "finish-plan-first",
+        label: "Finish documenting your original plan first, then reassess him in a few minutes.",
+        isSaferChoice: false,
+        consequence:
+          "By the time you reassess, several more minutes have passed during an unstable chest-pain presentation. In a true evolving ACS, that delay is exactly the kind of lost time that worsens outcomes — new or worsening symptoms should interrupt whatever you were doing.",
+      },
+      {
+        id: "reassure-wait",
+        label: "Reassure him it's probably just anxiety and continue your original plan unchanged.",
+        isSaferChoice: false,
+        consequence:
+          "Attributing a new, worse symptom to anxiety without reassessment is a classic anchoring error. Any unexplained change in an active chest-pain patient needs to be evaluated on its own, not assumed away.",
+      },
+    ],
+  },
   debrief: {
     correctConclusionLabel: "Diagnosis",
     correctConclusion: "Acute coronary syndrome (non-ST-elevation)",
