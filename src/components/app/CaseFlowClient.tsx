@@ -20,6 +20,14 @@ import RadialProgress from "@/components/ui/RadialProgress";
 import CountUp from "@/components/ui/CountUp";
 import SampleActivityFeed from "@/components/app/SampleActivityFeed";
 import { useToast } from "@/context/ToastContext";
+import {
+  createSpeechRecognizer,
+  isSpeechRecognitionSupported,
+  isSpeechSynthesisSupported,
+  speak,
+  stopSpeaking,
+  type VoiceRecognizer,
+} from "@/lib/speech";
 
 type PipelineStage = "ordered" | "collected" | "in-lab";
 const PIPELINE_ORDER: PipelineStage[] = ["ordered", "collected", "in-lab"];
@@ -106,6 +114,69 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
     return () => clearInterval(t);
   }, []);
 
+  // --- accessibility / voice / gentle time-pressure nudge (presentation only, never affects grading) ---
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [ttsSupported, setTtsSupported] = useState(false);
+  const [listening, setListening] = useState(false);
+  const recognizerRef = useRef<VoiceRecognizer | null>(null);
+  const [speakReplies, setSpeakReplies] = useState(false);
+  const [nudgeVisible, setNudgeVisible] = useState(false);
+  const [vitalsDriftBpm, setVitalsDriftBpm] = useState(0);
+  const stageEnteredAt = useRef<number>(0);
+  const nudgedStagesRef = useRef<Set<number>>(new Set());
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVoiceSupported(isSpeechRecognitionSupported());
+    setTtsSupported(isSpeechSynthesisSupported());
+    return () => {
+      recognizerRef.current?.stop();
+      stopSpeaking();
+    };
+  }, []);
+
+  // Reset the nudge and stop any in-progress voice interaction whenever the learner changes stage.
+  useEffect(() => {
+    stageEnteredAt.current = Date.now();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNudgeVisible(false);
+    setVitalsDriftBpm(0);
+    stopSpeaking();
+    if (listening) recognizerRef.current?.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stageIndex]);
+
+  // Gentle, non-punitive nudge if a learner lingers a long time on Interview or Evidence.
+  useEffect(() => {
+    const TIME_PRESSURE_STAGES = new Set(["interview", "evidence"]);
+    const t = setInterval(() => {
+      if (!TIME_PRESSURE_STAGES.has(stage)) return;
+      if (nudgedStagesRef.current.has(stageIndex)) return;
+      const elapsedMs = Date.now() - stageEnteredAt.current;
+      if (elapsedMs > 3 * 60 * 1000) {
+        nudgedStagesRef.current.add(stageIndex);
+        setNudgeVisible(true);
+        setVitalsDriftBpm(4);
+      }
+    }, 20000);
+    return () => clearInterval(t);
+  }, [stage, stageIndex]);
+
+  function toggleListening() {
+    if (listening) {
+      recognizerRef.current?.stop();
+      return;
+    }
+    const recognizer = createSpeechRecognizer(
+      (text) => setChatInput((prev) => (prev ? `${prev} ${text}` : text)),
+      () => setListening(false),
+    );
+    if (!recognizer) return;
+    recognizerRef.current = recognizer;
+    setListening(true);
+    recognizer.start();
+  }
+
   function goTo(i: number) {
     if (i <= furthest) setStageIndex(i);
   }
@@ -140,6 +211,7 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
       if (topicId) setAskedTopicIds((ids) => (ids.includes(topicId) ? ids : [...ids, topicId]));
       if (usedAI) setAiLiveThisCase(true);
       setTurns((t) => [...t, { role: "patient", text, atTime: nowLabel() }]);
+      if (speakReplies) speak(text);
     } catch {
       setErrorMsg("Couldn’t reach the patient. Try again.");
     } finally {
@@ -312,13 +384,40 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
           {initial.presentingIssue}
         </p>
         <div className="mt-2">
-          <LiveVitalsStrip snapshotFacts={initial.snapshotFacts} />
+          <LiveVitalsStrip snapshotFacts={initial.snapshotFacts} driftBpm={vitalsDriftBpm} />
         </div>
+        {nudgeVisible && (
+          <div className="mt-2 flex items-center justify-between gap-2 rounded-xl bg-warn-soft px-3.5 py-2 text-xs text-warn">
+            <span>
+              {`${initial.patient.name.split(" ")[0]}’s vitals have been trending up while you’ve been reviewing — worth deciding when you have enough to move forward.`}
+            </span>
+            <button
+              type="button"
+              onClick={() => setNudgeVisible(false)}
+              className="focus-ring flex-none font-bold"
+              aria-label="Dismiss"
+            >
+              &times;
+            </button>
+          </div>
+        )}
         <div className="mt-3 flex flex-wrap items-center gap-2">
           {stage === "interview" && (
             <Badge tone={aiLiveThisCase ? "good" : "neutral"}>
               {aiLiveThisCase ? "AI-powered dialogue" : "Scripted demo dialogue"}
             </Badge>
+          )}
+          {stage === "interview" && ttsSupported && (
+            <button
+              type="button"
+              onClick={() => setSpeakReplies((v) => !v)}
+              aria-pressed={speakReplies}
+              className={`focus-ring rounded-full border px-3 py-1 text-xs font-bold ${
+                speakReplies ? "border-accent text-accent" : "border-border text-foreground-dim hover:text-foreground"
+              }`}
+            >
+              {speakReplies ? "Reading replies aloud" : "Read replies aloud"}
+            </button>
           )}
           {stageIndex >= evidenceStageIndex && (
             <button
@@ -453,6 +552,23 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
               placeholder={`Ask ${initial.patient.name.split(" ")[0]} something...`}
               className="flex-1 bg-transparent py-2 text-[15px] text-foreground outline-none placeholder:text-foreground-dim"
             />
+            {voiceSupported && (
+              <button
+                type="button"
+                onClick={toggleListening}
+                disabled={chatBusy}
+                aria-pressed={listening}
+                aria-label={listening ? "Stop voice dictation" : "Ask by voice"}
+                className={`focus-ring flex h-9 w-9 flex-none items-center justify-center rounded-xl disabled:opacity-40 ${
+                  listening ? "bg-bad text-white" : "border border-border text-foreground-dim hover:text-foreground"
+                }`}
+              >
+                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <rect x="5.5" y="1.5" width="5" height="8" rx="2.5" stroke="currentColor" strokeWidth="1.4" />
+                  <path d="M3 8a5 5 0 0 0 10 0M8 13v2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                </svg>
+              </button>
+            )}
             <button
               disabled={chatBusy || !chatInput.trim()}
               onClick={sendQuestion}
@@ -975,6 +1091,19 @@ export default function CaseFlowClient({ caseId, initial }: { caseId: string; in
           </div>
 
           <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
+            {ttsSupported && (
+              <button
+                type="button"
+                onClick={() =>
+                  speak(
+                    `${debrief.content.correctConclusionLabel}. ${debrief.content.correctConclusion}. ${debrief.content.conclusionExplanation}`,
+                  )
+                }
+                className="focus-ring rounded-xl border border-border px-4 py-2.5 font-display text-sm font-bold text-foreground-dim hover:text-foreground"
+              >
+                Listen to the debrief
+              </button>
+            )}
             <Link href={`/app/quiz/${caseId}`} className="focus-ring font-display text-sm font-bold text-accent">
               Quick check quiz &rarr;
             </Link>
