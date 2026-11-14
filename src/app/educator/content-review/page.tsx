@@ -1,6 +1,7 @@
 import { listCases } from "@/lib/cases/registry";
 import ReviewStatusBadge from "@/components/ReviewStatusBadge";
 import ContentConcernForm from "@/components/app/ContentConcernForm";
+import ReviewWorkflowControls from "@/components/app/ReviewWorkflowControls";
 
 export default function ContentReviewPage() {
   const cases = listCases();
@@ -47,6 +48,7 @@ export default function ContentReviewPage() {
                 ))}
               </ul>
             </div>
+            <ReviewWorkflowControls caseId={c.meta.id} />
           </div>
         ))}
       </div>
